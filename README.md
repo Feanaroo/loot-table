@@ -30,7 +30,7 @@ The installers aren't signed with a paid certificate, so your system will warn y
 - **Windows**: "Windows protected your PC" → *More info* → *Run anyway*.
 - **macOS**: open it, then *System Settings → Privacy & Security → Open Anyway*.
 
-Or skip installing and use the [website version](https://OWNER.github.io/loot-table/): same app,
+Or skip installing and use the [website version](https://feanaroo.github.io/loot-table/): same app,
 your list is kept in that browser.
 
 ## How the picks work
