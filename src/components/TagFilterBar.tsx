@@ -1,4 +1,4 @@
-import { TAG_GROUPS, type TagFilter } from "./common";
+import { FILTER_GROUPS, STATUS_LABELS, type TagFilter } from "./common";
 
 /** Every tag, by group. Click: must have → must not have → off. Counts are the picks that
  * would match with the tag added. */
@@ -18,7 +18,7 @@ export default function TagFilterBar({
   const active = Object.keys(filter).length;
   return (
     <div className="tag-filter">
-      {TAG_GROUPS.filter((g) => vocab[g]).map((g) => (
+      {FILTER_GROUPS.filter((g) => vocab[g]).map((g) => (
         <div key={g} className="tag-filter-row">
           <span className="tag-filter-label">{g}</span>
           <div className="tags">
@@ -34,7 +34,7 @@ export default function TagFilterBar({
                   onClick={() => onToggle(key)}
                 >
                   {state === "out" ? "not " : ""}
-                  {t}
+                  {g === "status" ? STATUS_LABELS[t] ?? t : t}
                   {!state && <span className="tag-count">{n}</span>}
                 </button>
               );

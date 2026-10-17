@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, hours, type WorkDetail } from "../api";
-import { Cover, Stars, Tags, TierButtons } from "./common";
+import { Cover, StatusLine, Stars, Tags, TierButtons } from "./common";
 
 export default function WorkDrawer({ workKey, onClose }: { workKey: string | null; onClose: () => void }) {
   const [work, setWork] = useState<WorkDetail | null>(null);
@@ -40,6 +40,7 @@ export default function WorkDrawer({ workKey, onClose }: { workKey: string | nul
                     {work.bookCount} book{work.bookCount !== 1 ? "s" : ""} · {hours(work.runtimeMin)}
                   </span>
                 </div>
+                <StatusLine status={work.status} />
                 <TierButtons work={work} />
                 <a className="audible-link" href={work.audibleUrl} target="_blank" rel="noreferrer">
                   Open book 1 on Audible ↗

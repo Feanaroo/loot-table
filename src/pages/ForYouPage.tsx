@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, hours, TIERS, type Recommendations } from "../api";
 import { useBoard, useOpenWork } from "../board";
-import { Cover, Stars, Tags, TierButtons, type TagFilter } from "../components/common";
+import { Cover, StatusLine, Stars, Tags, TierButtons, type TagFilter } from "../components/common";
 import TagFilterBar from "../components/TagFilterBar";
 
 const FILTER_KEY = "foryou.tagFilter";
@@ -112,7 +112,7 @@ export default function ForYouPage() {
         </div>
       )}
       {filtered && data.matching === 0 && (
-        <div className="notice">Nothing matches all of these tags. Remove one to widen the search.</div>
+        <div className="notice">Nothing matches all of these filters. Remove one to widen the search.</div>
       )}
       <div className={`rec-grid ${loading ? "stale" : ""}`}>
         {items.map((r, i) => (
@@ -126,6 +126,7 @@ export default function ForYouPage() {
                 {r.narrators[0] && `🎙 ${r.narrators[0]} · `}
                 {r.bookCount} book{r.bookCount !== 1 ? "s" : ""} · {hours(r.runtimeMin)}
               </div>
+              <StatusLine status={r.status} />
               <Stars rating={r.rating} count={r.ratingCount} />
               <Tags tags={r.tags} filter={filter} onToggle={toggle} />
               <ul className="reasons">

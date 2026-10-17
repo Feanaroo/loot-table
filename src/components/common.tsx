@@ -1,4 +1,4 @@
-import { TIERS, type Bucket, type StoryTags, type Work } from "../api";
+import { TIERS, type Bucket, type SeriesStatus, type StoryTags, type Work } from "../api";
 import { useBoard } from "../board";
 
 export function Cover({ work, size = 72 }: { work: Pick<Work, "image" | "title">; size?: number }) {
@@ -62,6 +62,37 @@ export function Stars({ rating, count }: { rating: number | null; count: number 
 }
 
 export const TAG_GROUPS = ["setting", "story", "lead", "tone"];
+/** Filter rows: whether the series is finished, then the story tags */
+export const FILTER_GROUPS = ["status", ...TAG_GROUPS];
+
+/** How the status filter names each state */
+export const STATUS_LABELS: Record<string, string> = {
+  complete: "finished",
+  ongoing: "ongoing",
+  quiet: "no book in 2+ years",
+  abandoned: "abandoned",
+  standalone: "standalone",
+};
+
+const STATUS_BASIS: Record<string, string> = {
+  blurb: "The last book's description says it's the final one",
+  claude: "An AI's guess, from what it knows about the series: may be wrong",
+  manual: "Checked by hand",
+};
+
+/** "✓ Finished 2023", "Next book out Mar 2027", "No new book since 2023", with what it's based on */
+export function StatusLine({ status }: { status: SeriesStatus | null }) {
+  if (!status?.detail || status.state === "standalone") return null;
+  const hint =
+    STATUS_BASIS[status.source] ??
+    (status.state === "quiet" ? "Finished without saying so, or stalled: the data can't tell which" : "From release dates");
+  return (
+    <span className={`status status-${status.state}`} title={hint}>
+      {status.state === "complete" ? "✓ " : ""}
+      {status.detail}
+    </span>
+  );
+}
 
 /** A tag filter: "in" = must have, "out" = must not have; keyed "group:tag" */
 export type TagFilter = Record<string, "in" | "out">;

@@ -29,7 +29,19 @@ export interface Work {
   lastRelease: string | null;
   tier: Tier | null;
   audibleUrl: string;
+  status: SeriesStatus | null;
 }
+
+/** Is the series finished: complete | ongoing | quiet (no book in 2 years) | abandoned | standalone */
+export interface SeriesStatus {
+  state: string;
+  detail: string;
+  /** What it's based on: blurb | dates | claude | manual */
+  source: string;
+}
+
+/** The statuses, in the order the filter shows them */
+export const STATUS_STATES = ["complete", "ongoing", "quiet", "abandoned", "standalone"];
 
 export interface Book {
   asin: string;
@@ -83,7 +95,10 @@ function readStored(): StoredBoard {
   }
 }
 
+let statuses: Record<string, [string, string, string]> = {};
+
 function toWork(w: DataWork, tier: Tier | null = null): Work {
+  const st = statuses[w.key];
   return {
     key: w.key,
     title: w.title,
@@ -99,7 +114,24 @@ function toWork(w: DataWork, tier: Tier | null = null): Work {
     lastRelease: w.lastRelease,
     tier,
     audibleUrl: `https://www.audible.co.uk/pd/${w.firstAsin}`,
+    status: st ? { state: st[0], detail: st[1], source: st[2] } : null,
   };
+}
+
+/** The dataset, with its statuses at hand for toWork */
+async function load(): Promise<Index> {
+  const index = await loadIndex();
+  statuses = index.data.status ?? {};
+  return index;
+}
+
+/** What For You filters by: the story tags, plus "status:complete" etc. (kept out of tagSets, which
+ * the scoring uses) */
+function filterTags(index: Index, key: string): Set<string> {
+  const tags = new Set(index.tagSets.get(key) ?? []);
+  const st = index.data.status?.[key];
+  if (st) tags.add(`status:${st[0]}`);
+  return tags;
 }
 
 /** My placed works -> tier rank (0 = S), and everything on my list */
@@ -152,10 +184,10 @@ function search(index: Index, q: string, limit: number): Work[] {
 }
 
 export const api = {
-  search: async (q: string, limit = 30) => search(await loadIndex(), q, limit),
+  search: async (q: string, limit = 30) => search(await load(), q, limit),
 
   work: async (key: string): Promise<WorkDetail> => {
-    const index = await loadIndex();
+    const index = await load();
     const w = index.works.get(key);
     if (!w) throw new Error("No such series");
     const rows = index.data.books[key] ?? [
@@ -180,7 +212,7 @@ export const api = {
   },
 
   board: async (): Promise<Board> => {
-    const index = await loadIndex();
+    const index = await load();
     const board: Board = { S: [], A: [], B: [], C: [], D: [], F: [], unplaced: [] };
     for (const [bucket, keys] of Object.entries(readStored()) as [Bucket, string[]][]) {
       if (!(bucket in board)) continue;
@@ -198,14 +230,14 @@ export const api = {
   },
 
   /** A tier list file, matched against the dataset (transfer.ts) */
-  readTierlistFile: async (text: string) => readFile(text, await loadIndex()),
+  readTierlistFile: async (text: string) => readFile(text, await load()),
 
   /** The share link fragment for my list (share.ts) */
-  shareFragment: async (title = "") => encode(readStored(), await loadIndex(), title),
+  shareFragment: async (title = "") => encode(readStored(), await load(), title),
 
   /** A shared list from a link, as works; null if the link isn't one */
   readShared: async (fragment: string) => {
-    const index = await loadIndex();
+    const index = await load();
     const shared = decode(fragment, index);
     if (!shared) return null;
     const mine = tierOf();
@@ -222,18 +254,18 @@ export const api = {
   saveKeys: async (tiers: Record<Bucket, string[]>) => localStorage.setItem(STORAGE_KEY, JSON.stringify(tiers)),
 
   recommendations: async (include: string[] = [], exclude: string[] = [], limit = 60): Promise<Recommendations> => {
-    const index = await loadIndex();
+    const index = await load();
     const { ranks, listened } = myRanks();
     let recs = recommend(index, ranks, listened);
     if (include.length || exclude.length) {
       recs = recs.filter((r) => {
-        const tags = index.tagSets.get(r.key) ?? new Set<string>();
+        const tags = filterTags(index, r.key);
         return include.every((t) => tags.has(t)) && !exclude.some((t) => tags.has(t));
       });
     }
     // How many of the matching picks have each tag, for the filter bar
     const tagCounts: Record<string, number> = {};
-    for (const r of recs) for (const t of index.tagSets.get(r.key) ?? []) tagCounts[t] = (tagCounts[t] ?? 0) + 1;
+    for (const r of recs) for (const t of filterTags(index, r.key)) tagCounts[t] = (tagCounts[t] ?? 0) + 1;
     return {
       communityLists: index.lists.length,
       neighbours: neighbourWeights(index, ranks).size,
@@ -252,7 +284,7 @@ export const api = {
 
   /** The community's top series; mainstream fantasy (Stormlight, Harry Potter) only on request */
   community: async (includeMainstream = false, limit = 100): Promise<CommunityWork[]> => {
-    const index = await loadIndex();
+    const index = await load();
     const mine = tierOf();
     const quality = index.data.quality;
     return Object.keys(quality)
@@ -265,10 +297,11 @@ export const api = {
       });
   },
 
-  tags: async () => (await loadIndex()).data.vocab,
+  /** The filter's groups: whether the series is finished, then the story tags */
+  tags: async () => ({ status: STATUS_STATES, ...(await load()).data.vocab }),
 
   /** When the dataset was built */
-  builtAt: async () => (await loadIndex()).data.builtAt,
+  builtAt: async () => (await load()).data.builtAt,
 };
 
 export const hours = (min: number | null) => (min ? `${Math.round(min / 60)} h` : "");

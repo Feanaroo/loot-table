@@ -550,6 +550,20 @@ main {
 .tag-setting { border-color: #3f6f9e; color: #a9cdf0; }
 .tag-story { border-color: #4a4f5c; }
 .tag-lead { border-color: #8a6a2e; color: #f0cc8a; }
+.tag-status { border-color: #3d7a55; color: #a8e0bd; }
+
+/* Is the series finished */
+.status {
+  display: block;
+  font-size: 12px;
+  margin: 2px 0;
+  color: var(--muted);
+}
+.status-complete { color: #7fd19f; }
+.status-quiet { color: #c9a66b; }
+.status-abandoned { color: #e08a8a; }
+.status[title] { cursor: help; }
+
 .tag-tone { border-color: #6b4a8a; color: #d4b5f0; }
 button.tag {
   cursor: pointer;

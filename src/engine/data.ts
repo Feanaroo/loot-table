@@ -40,6 +40,9 @@ export interface Dataset {
   lists: ListEntry[][];
   /** Community strength per work (Bradley-Terry log-strength, 0 = average) */
   quality: Record<string, number>;
+  /** Is the series finished, as of builtAt: [state, text, based on], e.g. ["complete", "Finished 2023", "blurb"].
+   * state: complete | ongoing | quiet | abandoned | standalone; based on: blurb | dates | claude | manual */
+  status?: Record<string, [string, string, string]>;
 }
 
 export interface CommunityList {
