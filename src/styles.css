@@ -208,6 +208,19 @@ main {
   border-radius: 8px;
 }
 
+.support {
+  margin-top: 18px;
+  text-align: center;
+}
+.support a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.support a:hover {
+  color: var(--accent);
+}
+
 .share-panel {
   margin: 0;
   display: flex;
