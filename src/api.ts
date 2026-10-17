@@ -4,6 +4,7 @@
 import { byQuality, loadIndex, type DataWork, type Index } from "./engine/data";
 import { neighbourWeights, recommend, TIERS as ENGINE_TIERS } from "./engine/recommend";
 import { norm, similarity } from "./engine/text";
+import { ANY_POPULARITY, describe, within, type PopFilter } from "./popularity";
 import { decode, encode } from "./share";
 import { readFile } from "./transfer";
 
@@ -70,6 +71,8 @@ export interface Recommendation extends Work {
 export interface Recommendations {
   communityLists: number;
   neighbours: number;
+  /** What the popularity slider keeps, in words */
+  popularity: string;
   /** Picks that pass the tag filters, before the limit */
   matching: number;
   /** "group:tag" -> how many matching picks have it */
@@ -253,10 +256,18 @@ export const api = {
   /** Store a list given as keys, e.g. an imported one */
   saveKeys: async (tiers: Record<Bucket, string[]>) => localStorage.setItem(STORAGE_KEY, JSON.stringify(tiers)),
 
-  recommendations: async (include: string[] = [], exclude: string[] = [], limit = 60): Promise<Recommendations> => {
+  recommendations: async (
+    include: string[] = [],
+    exclude: string[] = [],
+    popularity: PopFilter = ANY_POPULARITY,
+    limit = 60,
+  ): Promise<Recommendations> => {
     const index = await load();
     const { ranks, listened } = myRanks();
     let recs = recommend(index, ranks, listened);
+    // Popularity first, so the tag counts are of what the slider keeps
+    const popular = within(index, popularity);
+    recs = recs.filter((r) => popular(index.works.get(r.key)!));
     if (include.length || exclude.length) {
       recs = recs.filter((r) => {
         const tags = filterTags(index, r.key);
@@ -268,6 +279,7 @@ export const api = {
     for (const r of recs) for (const t of filterTags(index, r.key)) tagCounts[t] = (tagCounts[t] ?? 0) + 1;
     return {
       communityLists: index.lists.length,
+      popularity: describe(index, popularity),
       neighbours: neighbourWeights(index, ranks).size,
       matching: recs.length,
       tagCounts,
@@ -296,6 +308,9 @@ export const api = {
         return w ? [{ ...toWork(w, mine.get(k) ?? null), quality: quality[k], lists: index.appearances.get(k) ?? 0 }] : [];
       });
   },
+
+  /** What a popularity slider setting keeps, in words */
+  describePopularity: async (p: PopFilter) => describe(await load(), p),
 
   /** The filter's groups: whether the series is finished, then the story tags */
   tags: async () => ({ status: STATUS_STATES, ...(await load()).data.vocab }),

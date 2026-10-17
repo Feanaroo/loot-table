@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { FILTER_GROUPS, STATUS_LABELS, type TagFilter } from "./common";
 
 /** Every tag, by group. Click: must have → must not have → off. Counts are the picks that
@@ -8,16 +9,23 @@ export default function TagFilterBar({
   filter,
   onToggle,
   onClear,
+  extraActive = 0,
+  children,
 }: {
   vocab: Record<string, string[]>;
   counts: Record<string, number>;
   filter: TagFilter;
   onToggle: (tag: string) => void;
   onClear: () => void;
+  /** Filters set outside the tag rows (the popularity slider), for the Clear button */
+  extraActive?: number;
+  /** Rows above the tags */
+  children?: ReactNode;
 }) {
-  const active = Object.keys(filter).length;
+  const active = Object.keys(filter).length + extraActive;
   return (
     <div className="tag-filter">
+      {children}
       {FILTER_GROUPS.filter((g) => vocab[g]).map((g) => (
         <div key={g} className="tag-filter-row">
           <span className="tag-filter-label">{g}</span>

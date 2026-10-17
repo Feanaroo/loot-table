@@ -619,6 +619,100 @@ button.tag:hover {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+/* Popularity: mode, then a two-handle slider (two range inputs on one track) */
+.popularity-row {
+  align-items: center;
+}
+.popularity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  flex: 1;
+  min-width: 0;
+}
+.pop-modes {
+  display: flex;
+  gap: 4px;
+}
+.pop-slider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 260px;
+  max-width: 420px;
+}
+.pop-track {
+  position: relative;
+  flex: 1;
+  height: 22px;
+}
+.pop-track::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 9px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.pop-fill {
+  position: absolute;
+  top: 9px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.pop-track input[type="range"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.pop-track input[type="range"]::-webkit-slider-runnable-track {
+  background: none;
+  height: 22px;
+}
+.pop-track input[type="range"]::-moz-range-track {
+  background: none;
+}
+.pop-track input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  pointer-events: auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--panel);
+  cursor: grab;
+}
+.pop-track input[type="range"]::-moz-range-thumb {
+  pointer-events: auto;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--panel);
+  cursor: grab;
+}
+.pop-track input[type="range"]:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--text);
+}
+.pop-end {
+  white-space: nowrap;
+}
+.pop-summary {
+  white-space: nowrap;
+}
+
 .tag-clear {
   align-self: flex-start;
   margin-top: 4px;
@@ -632,9 +726,19 @@ button.tag:hover {
   transition: opacity 0.15s;
 }
 @media (max-width: 640px) {
-  .tag-filter-row {
+  /* Label above its chips; flex-basis would otherwise turn into a 56px-tall gap */
+  .tag-filter-row,
+  .popularity-row {
     flex-direction: column;
-    gap: 0;
+    align-items: stretch;
+    gap: 2px;
+  }
+  .tag-filter-label {
+    flex: none;
+    margin-top: 6px;
+  }
+  .pop-slider {
+    max-width: none;
   }
 }
 

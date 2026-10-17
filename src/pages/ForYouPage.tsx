@@ -2,9 +2,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, hours, TIERS, type Recommendations } from "../api";
 import { useBoard, useOpenWork } from "../board";
 import { Cover, StatusLine, Stars, Tags, TierButtons, type TagFilter } from "../components/common";
+import PopularitySlider from "../components/PopularitySlider";
 import TagFilterBar from "../components/TagFilterBar";
+import { ANY_POPULARITY, isActive, type PopFilter } from "../popularity";
 
 const FILTER_KEY = "foryou.tagFilter";
+const POPULARITY_KEY = "foryou.popularity";
+
+function loadPopularity(): PopFilter {
+  try {
+    return { ...ANY_POPULARITY, ...JSON.parse(localStorage.getItem(POPULARITY_KEY) ?? "{}") };
+  } catch {
+    return ANY_POPULARITY;
+  }
+}
 
 function loadFilter(): TagFilter {
   try {
@@ -18,6 +29,16 @@ export default function ForYouPage() {
   const [data, setData] = useState<Recommendations | null>(null);
   const [vocab, setVocab] = useState<Record<string, string[]> | null>(null);
   const [filter, setFilter] = useState<TagFilter>(loadFilter);
+  const [popularity, setPopularity] = useState<PopFilter>(loadPopularity);
+  const [popularityText, setPopularityText] = useState("");
+  // In words as the handle moves, before the picks are rescored
+  useEffect(() => {
+    let current = true;
+    api.describePopularity(popularity).then((t) => current && setPopularityText(t));
+    return () => {
+      current = false;
+    };
+  }, [popularity]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { board, bucketOf } = useBoard();
@@ -29,11 +50,11 @@ export default function ForYouPage() {
     api.tags().then(setVocab, () => setVocab({}));
   }, []);
 
-  const load = useCallback((f: TagFilter) => {
+  const load = useCallback((f: TagFilter, p: PopFilter) => {
     const id = ++request.current;
     setLoading(true);
     const pick = (state: "in" | "out") => Object.keys(f).filter((k) => f[k] === state);
-    api.recommendations(pick("in"), pick("out")).then(
+    api.recommendations(pick("in"), pick("out"), p).then(
       (d) => {
         // A slow answer to an older filter mustn't replace a newer one
         if (id !== request.current) return;
@@ -49,21 +70,40 @@ export default function ForYouPage() {
   const signature = TIERS.map((t) => board[t].map((w) => w.key).join(",")).join("|");
   const filterRef = useRef(filter);
   filterRef.current = filter;
+  const popularityRef = useRef(popularity);
+  popularityRef.current = popularity;
   const first = useRef(true);
   useEffect(() => {
-    const t = window.setTimeout(() => load(filterRef.current), first.current ? 0 : 700);
+    const t = window.setTimeout(() => load(filterRef.current, popularityRef.current), first.current ? 0 : 700);
     first.current = false;
     return () => window.clearTimeout(t);
   }, [signature, load]);
 
-  const changeFilter = (next: TagFilter) => {
-    setFilter(next);
+  const remember = (key: string, value: unknown) => {
     try {
-      localStorage.setItem(FILTER_KEY, JSON.stringify(next));
+      localStorage.setItem(key, JSON.stringify(value));
     } catch {
       // private window: the filter just isn't remembered
     }
-    load(next);
+  };
+  const changeFilter = (next: TagFilter, p: PopFilter = popularity) => {
+    setFilter(next);
+    remember(FILTER_KEY, next);
+    load(next, p);
+  };
+  // Dragging fires many changes: score once the handle rests
+  const slide = useRef<number>();
+  const changePopularity = (p: PopFilter) => {
+    setPopularity(p);
+    remember(POPULARITY_KEY, p);
+    window.clearTimeout(slide.current);
+    slide.current = window.setTimeout(() => load(filterRef.current, p), 200);
+  };
+  const clearAll = () => {
+    const p = { ...popularity, min: 0, max: 100 };
+    setPopularity(p);
+    remember(POPULARITY_KEY, p);
+    changeFilter({}, p);
   };
   // off -> must have -> must not have -> off
   const toggle = (tag: string) => {
@@ -79,7 +119,7 @@ export default function ForYouPage() {
 
   // Ranked from this page: hide until the next refresh rather than jumping the grid
   const items = data.items.filter((r) => !bucketOf(r.key));
-  const filtered = Object.keys(filter).length > 0;
+  const filtered = Object.keys(filter).length > 0 || isActive(popularity);
 
   return (
     <div>
@@ -102,8 +142,11 @@ export default function ForYouPage() {
           counts={data.tagCounts}
           filter={filter}
           onToggle={toggle}
-          onClear={() => changeFilter({})}
-        />
+          onClear={clearAll}
+          extraActive={Number(isActive(popularity))}
+        >
+          <PopularitySlider value={popularity} summary={popularityText || data.popularity} onChange={changePopularity} />
+        </TagFilterBar>
       )}
       {filtered && (
         <div className="muted small filter-summary">

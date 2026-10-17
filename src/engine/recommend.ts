@@ -102,6 +102,16 @@ export function neighbourWeights(index: Index, myRanks: Map<string, number>): Ma
  * @param myRanks placed works -> tier rank (0 = S)
  * @param listened every work on my list, placed or not: never recommended
  */
+/** Popularity in 0..1: log of Reddit lists and of Audible ratings, each against the most popular work.
+ * Also what For You's "combined" popularity slider measures. */
+export function popularityOf(index: Index): (w: DataWork) => number {
+  const mostLists = Math.max(1, ...index.appearances.values());
+  const mostRatings = Math.max(1, ...index.data.works.map((w) => w.ratingCount ?? 0));
+  return (w) =>
+    (0.5 * Math.log1p(index.appearances.get(w.key) ?? 0)) / Math.log1p(mostLists) +
+    (0.5 * Math.log1p(w.ratingCount ?? 0)) / Math.log1p(mostRatings);
+}
+
 export function recommend(index: Index, myRanks: Map<string, number>, listened: Set<string>): Scored[] {
   const quality = index.data.quality;
   const weights = neighbourWeights(index, myRanks);
@@ -156,12 +166,7 @@ export function recommend(index: Index, myRanks: Map<string, number>, listened: 
   let meanContent = 0;
   for (const { c } of content.values()) meanContent += c / content.size;
 
-  // Popularity in 0..1: log of Reddit lists and of Audible ratings, each against the most popular work
-  const mostLists = Math.max(1, ...index.appearances.values());
-  const mostRatings = Math.max(1, ...index.data.works.map((w) => w.ratingCount ?? 0));
-  const popularity = (w: DataWork) =>
-    (0.5 * Math.log1p(index.appearances.get(w.key) ?? 0)) / Math.log1p(mostLists) +
-    (0.5 * Math.log1p(w.ratingCount ?? 0)) / Math.log1p(mostRatings);
+  const popularity = popularityOf(index);
 
   const qualityCount = Object.keys(quality).length;
   const recs: (Scored & { pop: number })[] = [];
