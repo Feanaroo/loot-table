@@ -12,6 +12,9 @@ r/ProgressionFantasy, matched to what's on Audible UK.
   their top tier"). Filter by what kind of story you're in the mood for: cultivation, dungeon
   core, no harem, female lead…
 - **Community**: the genre's top 100 by how readers rank them.
+- **Share** your tier list as a link (the list is in the link itself, about 2 characters a series),
+  and compare someone's shared list with yours. **Export / Import** it as a file, to move it between
+  computers or from the website to the app.
 
 Everything runs on your computer. Your tier list never leaves it: no account, no server, no
 tracking.

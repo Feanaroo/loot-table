@@ -2,16 +2,19 @@ import { useRef, useState } from "react";
 import { api, TIERS, type Bucket } from "../api";
 import { useBoard } from "../board";
 import { combine, fileName, saveText, toFile, type Imported } from "../transfer";
+import SharePanel from "./SharePanel";
 
 const BUCKETS: Bucket[] = [...TIERS, "unplaced"];
 
-/** Export the tier list to a file, or import one: replacing the list, or adding to it. */
+/** Share the tier list as a link; export it to a file, or import one (replacing the list, or adding to it). */
 export default function TierTransfer() {
   const { board, reload } = useBoard();
   const input = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<Imported | null>(null);
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
+  const [sharing, setSharing] = useState(false);
   const mine = BUCKETS.reduce((n, b) => n + board[b].length, 0);
+  const ranked = mine - board.unplaced.length;
 
   const exportList = async () => {
     try {
@@ -49,6 +52,14 @@ export default function TierTransfer() {
   return (
     <div className="transfer">
       <div className="transfer-buttons">
+        <button
+          className={sharing ? "active" : ""}
+          onClick={() => setSharing(!sharing)}
+          disabled={ranked === 0}
+          title="A link to your tier list"
+        >
+          Share
+        </button>
         <button onClick={exportList} disabled={mine === 0} title="Save your tier list to a file">
           Export
         </button>
@@ -63,6 +74,7 @@ export default function TierTransfer() {
           onChange={(e) => pick(e.target.files?.[0])}
         />
       </div>
+      {sharing && ranked > 0 && <SharePanel onClose={() => setSharing(false)} />}
       {pending && (
         <div className="notice transfer-confirm">
           <div>

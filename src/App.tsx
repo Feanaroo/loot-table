@@ -3,8 +3,10 @@ import { api } from "./api";
 import { BoardProvider, DrawerCtx } from "./board";
 import WorkDrawer from "./components/WorkDrawer";
 import CommunityPage from "./pages/CommunityPage";
+import SharedPage from "./pages/SharedPage";
 import ForYouPage from "./pages/ForYouPage";
 import TierListPage from "./pages/TierListPage";
+import { isShareHash } from "./share";
 
 const PAGES = {
   tierlist: { label: "Tier list", Component: TierListPage },
@@ -31,10 +33,16 @@ function DataDate() {
 
 export default function App() {
   const [page, setPage] = useState<PageId>(pageFromHash);
+  // A share link (#s=...) shows that list instead of a page
+  const [shared, setShared] = useState(() => (isShareHash(window.location.hash) ? window.location.hash : null));
   const [drawer, setDrawer] = useState<string | null>(null);
 
   useEffect(() => {
-    const onHash = () => setPage(pageFromHash());
+    const onHash = () => {
+      setPage(pageFromHash());
+      setShared(isShareHash(window.location.hash) ? window.location.hash : null);
+      window.scrollTo(0, 0);
+    };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
@@ -52,7 +60,7 @@ export default function App() {
           </a>
           <nav>
             {(Object.keys(PAGES) as PageId[]).map((id) => (
-              <a key={id} href={`#/${id}`} className={page === id ? "active" : ""}>
+              <a key={id} href={`#/${id}`} className={!shared && page === id ? "active" : ""}>
                 {PAGES[id].label}
               </a>
             ))}
@@ -60,7 +68,7 @@ export default function App() {
           <DataDate />
         </header>
         <main>
-          <Component />
+          {shared ? <SharedPage fragment={shared} /> : <Component />}
         </main>
         <WorkDrawer workKey={drawer} onClose={close} />
       </DrawerCtx.Provider>

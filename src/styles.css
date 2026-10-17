@@ -150,6 +150,94 @@ main {
   display: flex;
   gap: 6px;
 }
+/* A shared tier list */
+.shared-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+.shared-actions button.active {
+  border-color: var(--accent);
+}
+.shared-page .tier-row .tile {
+  cursor: pointer;
+}
+.shared-foot {
+  margin-top: 24px;
+}
+.compare {
+  margin-top: 28px;
+}
+.compare h3 {
+  margin-top: 24px;
+}
+.compare-table {
+  border-collapse: collapse;
+  width: min(640px, 100%);
+}
+.compare-table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--muted);
+  padding: 4px 8px;
+}
+.compare-table td {
+  padding: 5px 8px;
+  border-top: 1px solid var(--line);
+}
+.compare-table tbody tr {
+  cursor: pointer;
+}
+.compare-table tbody tr:hover td {
+  background: var(--panel);
+}
+.compare-table tr.disagree td:first-child {
+  color: var(--accent);
+}
+.tier-chip {
+  display: inline-block;
+  min-width: 26px;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: 700;
+  color: #1a1a1a;
+  padding: 1px 6px;
+}
+.compare .tier-items {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.share-panel {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(560px, 100%);
+}
+.share-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.share-head button.link {
+  font-size: 20px;
+  line-height: 1;
+  text-decoration: none;
+}
+.share-link {
+  display: flex;
+  gap: 6px;
+}
+.share-link input {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+.transfer-buttons button.active {
+  border-color: var(--accent);
+}
 .transfer-confirm {
   margin: 0;
   display: flex;

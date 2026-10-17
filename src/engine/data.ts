@@ -20,6 +20,8 @@ export interface DataWork {
   mentions: number;
   /** Same series listed twice on Audible shares this */
   ident: string;
+  /** Permanent number, never reused: what share links are made of */
+  sid: number;
 }
 
 /** [asin, title, sequence, year, runtime in minutes, rating] */
@@ -58,6 +60,8 @@ export interface Index {
   placements: Map<string, { label: string; rank: number; tiers: number }[]>;
   /** Work key -> tags as "group:tag" */
   tagSets: Map<string, Set<string>>;
+  /** Permanent number (share links) -> work key */
+  bySid: Map<number, string>;
 }
 
 /** Best community strength first; ties by key, so the order is the same everywhere */
@@ -101,5 +105,6 @@ export function buildIndex(data: Dataset): Index {
       new Set(Object.entries(groups).flatMap(([g, ts]) => ts.map((t) => `${g}:${t}`))),
     ]),
   );
-  return { data, works, lists, appearances, qualityOrder, placements, tagSets };
+  const bySid = new Map(data.works.map((w) => [w.sid, w.key]));
+  return { data, works, lists, appearances, qualityOrder, placements, tagSets, bySid };
 }

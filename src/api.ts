@@ -4,6 +4,7 @@
 import { byQuality, loadIndex, type DataWork, type Index } from "./engine/data";
 import { neighbourWeights, recommend, TIERS as ENGINE_TIERS } from "./engine/recommend";
 import { norm, similarity } from "./engine/text";
+import { decode, encode } from "./share";
 import { readFile } from "./transfer";
 
 export const TIERS = ENGINE_TIERS;
@@ -198,6 +199,24 @@ export const api = {
 
   /** A tier list file, matched against the dataset (transfer.ts) */
   readTierlistFile: async (text: string) => readFile(text, await loadIndex()),
+
+  /** The share link fragment for my list (share.ts) */
+  shareFragment: async (title = "") => encode(readStored(), await loadIndex(), title),
+
+  /** A shared list from a link, as works; null if the link isn't one */
+  readShared: async (fragment: string) => {
+    const index = await loadIndex();
+    const shared = decode(fragment, index);
+    if (!shared) return null;
+    const mine = tierOf();
+    const board = Object.fromEntries(
+      Object.entries(shared.tiers).map(([b, keys]) => [
+        b,
+        keys.map((k) => toWork(index.works.get(k)!, mine.get(k) ?? null)),
+      ]),
+    ) as Board;
+    return { board, keys: shared.tiers, title: shared.title, missing: shared.missing };
+  },
 
   /** Store a list given as keys, e.g. an imported one */
   saveKeys: async (tiers: Record<Bucket, string[]>) => localStorage.setItem(STORAGE_KEY, JSON.stringify(tiers)),
