@@ -4,6 +4,8 @@
 what to listen to next from 900+ tier lists that readers posted on r/litrpg and
 r/ProgressionFantasy, matched to what's on Audible UK.
 
+![For you: picks with the reasons behind them](docs/screenshots/1-for-you.png)
+
 - **Tier list**: search 3,600 series and drop them into S–F tiers.
 - **For you**: picks for *your* taste, each with the reasons behind it ("same kind of story as
   Mother of Learning: time loop, academy", "28 readers with taste like yours ranked it, 11 in
@@ -13,6 +15,8 @@ r/ProgressionFantasy, matched to what's on Audible UK.
 
 Everything runs on your computer. Your tier list never leaves it: no account, no server, no
 tracking.
+
+![Your tier list, and search to fill it](docs/screenshots/2-tier-list.png)
 
 ## Install
 

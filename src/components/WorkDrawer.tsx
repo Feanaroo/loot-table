@@ -56,8 +56,9 @@ export default function WorkDrawer({ workKey, onClose }: { workKey: string | nul
                     {b.title}
                   </a>
                   <span className="muted small">
-                    {b.year} · {hours(b.runtimeMin)}
-                    {b.rating ? ` · ★ ${b.rating.toFixed(1)}` : ""}
+                    {/* A pre-order has no year (Audible's placeholder date is dropped), length or rating */}
+                    {[b.year, hours(b.runtimeMin), b.rating ? `★ ${b.rating.toFixed(1)}` : ""].filter(Boolean).join(" · ") ||
+                      "not out yet"}
                   </span>
                 </li>
               ))}
