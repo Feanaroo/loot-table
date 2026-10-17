@@ -22,9 +22,9 @@ export default function TierListPage() {
           Enjoying Loot Table?{" "}
           <a href="https://ko-fi.com/feanaro" target="_blank" rel="noreferrer">
             ☕ Support it on Ko-fi
-          </a>{" "}
-          · Questions, ideas, a series that's missing:{" "}
-          <a href="mailto:vityk202@gmail.com">vityk202@gmail.com</a>
+          </a>
+          <br />
+          Contact: <a href="mailto:vityk202@gmail.com">vityk202@gmail.com</a>
         </p>
       </section>
       <aside className="search-col">
