@@ -1,0 +1,5 @@
+# Same line endings on every system (CI builds on Linux and macOS too)
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.icns binary
