@@ -1,6 +1,7 @@
 import { TIERS } from "../api";
 import { useBoard } from "../board";
 import TierBoard from "../components/TierBoard";
+import TierTransfer from "../components/TierTransfer";
 import WorkSearch from "../components/WorkSearch";
 
 export default function TierListPage() {
@@ -14,6 +15,7 @@ export default function TierListPage() {
           <span className="muted">
             {ranked} ranked · {board.unplaced.length} to place — drag to reorder, click a cover for details
           </span>
+          <TierTransfer />
         </div>
         {loaded && <TierBoard />}
       </section>

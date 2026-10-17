@@ -4,6 +4,7 @@
 import { byQuality, loadIndex, type DataWork, type Index } from "./engine/data";
 import { neighbourWeights, recommend, TIERS as ENGINE_TIERS } from "./engine/recommend";
 import { norm, similarity } from "./engine/text";
+import { readFile } from "./transfer";
 
 export const TIERS = ENGINE_TIERS;
 export type Tier = (typeof TIERS)[number];
@@ -194,6 +195,12 @@ export const api = {
     const stored = Object.fromEntries(Object.entries(board).map(([t, ws]) => [t, ws.map((w) => w.key)]));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
   },
+
+  /** A tier list file, matched against the dataset (transfer.ts) */
+  readTierlistFile: async (text: string) => readFile(text, await loadIndex()),
+
+  /** Store a list given as keys, e.g. an imported one */
+  saveKeys: async (tiers: Record<Bucket, string[]>) => localStorage.setItem(STORAGE_KEY, JSON.stringify(tiers)),
 
   recommendations: async (include: string[] = [], exclude: string[] = [], limit = 60): Promise<Recommendations> => {
     const index = await loadIndex();

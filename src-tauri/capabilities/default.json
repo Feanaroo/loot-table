@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The main window: core APIs, and opening web links in the system browser",
+  "description": "The main window: core APIs, opening web links in the system browser, and saving an exported tier list to the file picked in a Save dialog",
   "windows": ["main"],
-  "permissions": ["core:default", "opener:default"]
+  "permissions": ["core:default", "opener:default", "dialog:allow-save", "fs:allow-write-text-file"]
 }
