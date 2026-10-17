@@ -36,6 +36,11 @@ describe("share links", () => {
     expect(decode(link, index)!.title).toBe("My top picks & more");
   });
 
+  it("refuses to make an empty link from a catalog without share numbers (a stale cached copy)", () => {
+    const old = buildIndex({ ...data, works: data.works.map(({ sid: _, ...w }) => w as typeof w & { sid: number }) });
+    expect(() => encode(tiers, old)).toThrow(/Reload the page/);
+  });
+
   it("counts series this catalog doesn't have, and rejects links that aren't share links", () => {
     expect(decode("s=2__", index)!.missing).toBe(1); // number 4095: not assigned (yet)
     expect(decode("s=2abc", index)).toBeNull(); // not a whole number of codes

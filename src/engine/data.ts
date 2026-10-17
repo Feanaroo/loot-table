@@ -71,7 +71,7 @@ export const byQuality = (quality: Record<string, number>) => (a: string, b: str
 let loading: Promise<Index> | null = null;
 
 export function loadIndex(): Promise<Index> {
-  loading ??= fetch(`${import.meta.env.BASE_URL}data.json`)
+  loading ??= fetch(`${import.meta.env.BASE_URL}data.json?v=${__DATA_VERSION__}`)
     .then((r) => {
       if (!r.ok) throw new Error(`Couldn't load the data (${r.status})`);
       return r.json() as Promise<Dataset>;

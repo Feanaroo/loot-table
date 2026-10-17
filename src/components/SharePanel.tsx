@@ -9,12 +9,26 @@ export default function SharePanel({ onClose }: { onClose: () => void }) {
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const field = useRef<HTMLInputElement>(null);
 
   // The board saves 400 ms after a change; the link is built from what's saved
   const signature = JSON.stringify(board, ["S", "A", "B", "C", "D", "F", "key"]);
   useEffect(() => {
-    const t = window.setTimeout(() => api.shareFragment(title).then((f) => setLink(shareUrl(f))), 450);
+    const t = window.setTimeout(
+      () =>
+        api.shareFragment(title).then(
+          (f) => {
+            setLink(shareUrl(f));
+            setError(null);
+          },
+          (e) => {
+            setLink("");
+            setError(e instanceof Error ? e.message : String(e));
+          },
+        ),
+      450,
+    );
     setCopied(false);
     return () => window.clearTimeout(t);
   }, [title, signature]);
@@ -51,6 +65,7 @@ export default function SharePanel({ onClose }: { onClose: () => void }) {
           {copied ? "Copied" : "Copy link"}
         </button>
       </div>
+      {error && <div className="error small">{error}</div>}
       <div className="muted small">
         Anyone with the link sees your ranked tiers ({link.length} characters). The list is in the link itself:
         nothing is uploaded.

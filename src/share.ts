@@ -27,7 +27,12 @@ const number = (s: string) => [...s].reduce((n, ch) => n * 64 + ALPHABET.indexOf
 
 /** The link's fragment (after "#") for a list given as keys per tier */
 export function encode(tiers: Partial<Record<Bucket, string[]>>, index: Index, title = ""): string {
-  const sids = TIERS.map((t) => (tiers[t] ?? []).flatMap((k) => index.works.get(k)?.sid ?? []));
+  const known = (k: string) => index.works.has(k);
+  if (TIERS.some((t) => (tiers[t] ?? []).some((k) => known(k) && index.works.get(k)!.sid === undefined))) {
+    // Data from before share numbers existed: an empty link would look fine and show nothing
+    throw new Error("This page has an older copy of the catalog. Reload the page (Ctrl+F5) and try again.");
+  }
+  const sids = TIERS.map((t) => (tiers[t] ?? []).flatMap((k) => (known(k) ? [index.works.get(k)!.sid] : [])));
   const largest = Math.max(0, ...sids.flat());
   let width = 2;
   while (64 ** width <= largest) width++;
