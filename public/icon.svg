@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#1b1d23"/>
+  <!-- lid -->
+  <path d="M96 236v-40c0-62 48-104 160-104s160 42 160 104v40z" fill="#f0a640"/>
+  <path d="M96 236v-40c0-62 48-104 160-104s160 42 160 104v40z" fill="none" stroke="#1a1203" stroke-width="16" stroke-linejoin="round"/>
+  <!-- body -->
+  <rect x="96" y="236" width="320" height="180" rx="18" fill="#d98a23" stroke="#1a1203" stroke-width="16"/>
+  <!-- bands -->
+  <path d="M176 100v316M336 100v316" stroke="#1a1203" stroke-width="16"/>
+  <!-- lock -->
+  <rect x="222" y="206" width="68" height="84" rx="12" fill="#ffdf7f" stroke="#1a1203" stroke-width="14"/>
+  <circle cx="256" cy="240" r="10" fill="#1a1203"/>
+  <path d="M256 246v22" stroke="#1a1203" stroke-width="10" stroke-linecap="round"/>
+</svg>
