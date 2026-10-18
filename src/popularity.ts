@@ -58,6 +58,16 @@ function scales(index: Index): Record<PopMode, Scale> {
   return s;
 }
 
+/** Where a work falls among the ranked series, 0..100 (by ties kept together); null if unknown */
+export function percentileOf(index: Index, mode: PopMode, w: DataWork): number | null {
+  const { value, sorted } = scales(index)[mode];
+  const v = value(w);
+  if (v === null || !sorted.length) return null;
+  let n = 0;
+  while (n < sorted.length && sorted[n] <= v) n++;
+  return (100 * n) / sorted.length;
+}
+
 const at = (sorted: number[], position: number) => sorted[Math.round((position / 100) * (sorted.length - 1))];
 
 /** The values the slider's two ends stand for; open-ended at 0 and 100 */

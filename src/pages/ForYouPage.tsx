@@ -39,6 +39,7 @@ export default function ForYouPage() {
       current = false;
     };
   }, [popularity]);
+  const [why, setWhy] = useState<string[]>([]);
   const [filledEmpty, setFilledEmpty] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,12 +105,19 @@ export default function ForYouPage() {
     const p = { ...popularity, min: 0, max: 100 };
     setPopularity(p);
     remember(POPULARITY_KEY, p);
+    setWhy([]);
     changeFilter({}, p);
   };
   const fillFromBooks = async () => {
-    const suggested = await api.suggestFilter();
-    setFilledEmpty(Object.keys(suggested).length === 0);
-    if (Object.keys(suggested).length) changeFilter(suggested);
+    const s = await api.suggest();
+    const empty = Object.keys(s.filter).length === 0 && !s.popularity;
+    setFilledEmpty(empty);
+    setWhy(empty ? [] : s.reasons);
+    if (empty) return;
+    const p = s.popularity ?? popularity;
+    setPopularity(p);
+    remember(POPULARITY_KEY, p);
+    changeFilter(s.filter, p);
   };
   // off -> must have -> must not have -> off
   const toggle = (tag: string) => {
@@ -117,6 +125,7 @@ export default function ForYouPage() {
     if (!next[tag]) next[tag] = "in";
     else if (next[tag] === "in") next[tag] = "out";
     else delete next[tag];
+    setWhy([]);
     changeFilter(next);
   };
 
@@ -160,9 +169,16 @@ export default function ForYouPage() {
               <span className="muted small">
                 {filledEmpty
                   ? "No clear pattern yet: rank a few more series in your top and bottom tiers."
-                  : "Requires what your S and A tiers have in common, and excludes what your D and F tiers do."}
+                  : "Sets the filters from what your S and A tiers have in common, and what your D and F tiers do."}
               </span>
             </div>
+          )}
+          {why.length > 0 && (
+            <ul className="suggest-why muted small">
+              {why.map((x) => (
+                <li key={x}>{x}</li>
+              ))}
+            </ul>
           )}
           <PopularitySlider value={popularity} summary={popularityText || data.popularity} onChange={changePopularity} />
         </TagFilterBar>

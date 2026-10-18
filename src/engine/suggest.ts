@@ -4,6 +4,7 @@
  * more common there than in the genre as a whole; worth excluding when most of the ones you rank
  * low (D, F) have it and the ones you like almost never do. */
 
+import { percentileOf, type PopFilter } from "../popularity";
 import type { Index } from "./data";
 
 /** Same shape as the filter in the UI: "group:tag" -> must have / must not have */
@@ -23,6 +24,65 @@ function shares(index: Index, keys: string[]): Map<string, number> {
   const out = new Map<string, number>();
   for (const k of keys) for (const t of index.tagSets.get(k) ?? []) out.set(t, (out.get(t) ?? 0) + 1 / keys.length);
   return out;
+}
+
+export interface Suggestion {
+  filter: SuggestedFilter;
+  /** Only when your top tiers lean obscure; otherwise left as it is */
+  popularity: PopFilter | null;
+  /** One line per setting, saying which of your series it comes from */
+  reasons: string[];
+}
+
+const MIN_OBSCURE_SHARE = 0.7; // of your top series in the less-known half
+const MIN_FINISHED_SHARE = 0.7;
+const MIN_STATUS_SERIES = 3;
+const UNFINISHED = ["ongoing", "quiet", "abandoned"];
+
+const list = (titles: string[]) =>
+  titles.length > 3 ? `${titles.slice(0, 3).join(", ")} and ${titles.length - 3} more` : titles.join(", ");
+
+export function suggest(index: Index, myRanks: Map<string, number>): Suggestion {
+  const filter = suggestFilter(index, myRanks);
+  const reasons: string[] = [];
+  const title = (k: string) => index.works.get(k)?.title ?? k;
+  const inTier = (tiers: Set<number>) => [...myRanks].filter(([, r]) => tiers.has(r)).map(([k]) => k);
+  const liked = inTier(LIKED_TIERS);
+  const disliked = inTier(DISLIKED_TIERS);
+  const label = (t: string) => t.split(":").slice(1).join(":");
+
+  for (const [tag, state] of Object.entries(filter)) {
+    const from = (state === "in" ? liked : disliked).filter((k) => index.tagSets.get(k)?.has(tag));
+    reasons.push(
+      state === "in"
+        ? `Requires ${label(tag)}: in ${list(from.map(title))}, which you rank high.`
+        : `Excludes ${label(tag)}: in ${list(from.map(title))}, which you rank low.`,
+    );
+  }
+
+  // Finished or not: only if nearly all your top series with a known status are finished
+  const statusOf = (k: string) => index.data.status?.[k]?.[0];
+  const known = liked.filter((k) => statusOf(k));
+  const finished = known.filter((k) => ["complete", "standalone"].includes(statusOf(k)!));
+  if (known.length >= MIN_STATUS_SERIES && finished.length / known.length >= MIN_FINISHED_SHARE) {
+    for (const s of UNFINISHED) filter[`status:${s}`] = "out";
+    reasons.push(`Only finished series: ${finished.length} of your ${known.length} top series are.`);
+  }
+
+  // Popularity: only to keep the well-known out when your top series are mostly the less known
+  const percentiles = liked
+    .map((k) => index.works.get(k))
+    .flatMap((w) => (w ? [percentileOf(index, "combined", w)] : []))
+    .filter((p): p is number => p !== null);
+  let popularity: PopFilter | null = null;
+  if (percentiles.length >= MIN_SERIES) {
+    const obscure = percentiles.filter((p) => p <= 50).length;
+    if (obscure / percentiles.length >= MIN_OBSCURE_SHARE) {
+      popularity = { mode: "combined", min: 0, max: Math.min(100, Math.ceil(Math.max(...percentiles) / 10) * 10 + 10) };
+      reasons.push(`Less well known: ${obscure} of your ${percentiles.length} top series are in the less known half.`);
+    }
+  }
+  return { filter, popularity, reasons };
 }
 
 export function suggestFilter(index: Index, myRanks: Map<string, number>): SuggestedFilter {

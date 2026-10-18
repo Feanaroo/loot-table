@@ -636,6 +636,10 @@ button.tag:hover {
   align-items: center;
   flex-wrap: wrap;
 }
+.suggest-why {
+  margin: 2px 0 6px 66px;
+  padding-left: 16px;
+}
 .tag-suggest {
   border: 1px solid var(--line);
   background: transparent;
