@@ -811,24 +811,81 @@ button.tag:hover {
   margin: 0;
   list-style: none;
 }
-.books li {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+.books > li {
   padding: 6px 0;
   border-bottom: 1px solid var(--line);
   font-size: 14px;
 }
+/* Sequence, title, then year · length · rating: one column each, so rows line up */
+.book-head {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr) max-content 3.5rem;
+  align-items: baseline;
+  column-gap: 10px;
+}
+.book-head > .muted {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.book-rating {
+  text-align: right;
+}
 .books a {
+  min-width: 0;
   text-decoration: none;
+}
+/* Several editions of one place in the series (original, dramatized parts) */
+.book-count {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  vertical-align: 1px;
+  cursor: pointer;
+}
+.book-toggle {
+  cursor: pointer;
+  border-radius: 4px;
+}
+.book-toggle:hover .book-count,
+.book-toggle:focus-visible .book-count {
+  border-color: var(--muted);
+  color: var(--text);
+}
+.book-toggle:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+.book-versions {
+  list-style: none;
+  margin: 6px 0 2px calc(3.5rem + 10px);
+  padding: 0 0 0 10px;
+  border-left: 1px solid var(--line);
+}
+.book-version {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+  font-size: 13px;
+}
+.book-version .muted {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .books a:hover {
   color: var(--accent);
 }
 .seq {
-  display: inline-block;
-  min-width: 28px;
   color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .community-chips {
   display: flex;

@@ -106,6 +106,70 @@ function CommunityPlacements({ placements }: { placements: WorkDetail["community
   );
 }
 
+type Book = WorkDetail["books"][number];
+
+/** Books that share a place in the series (an original and its dramatized parts) fold under one row */
+function groupBooks(books: Book[]): Book[][] {
+  const groups = new Map<string, Book[]>();
+  for (const b of books) {
+    const key = b.sequence || b.asin;
+    groups.set(key, [...(groups.get(key) ?? []), b]);
+  }
+  return [...groups.values()];
+}
+
+const when = (b: Book) => [b.year, hours(b.runtimeMin)].filter(Boolean).join(" · ") || "not out yet";
+const BookLink = ({ b }: { b: Book }) => (
+  <a href={`https://www.audible.co.uk/pd/${b.asin}`} target="_blank" rel="noreferrer">
+    {b.title}
+  </a>
+);
+
+function BookGroup({ books }: { books: Book[] }) {
+  const [open, setOpen] = useState(false);
+  const first = books[0];
+  return (
+    <li className="book-group">
+      {/* The whole row opens the versions; the title still links to Audible */}
+      <div
+        className="book-head book-toggle"
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen(!open);
+          }
+        }}
+      >
+        <span className="seq">{first.sequence}</span>
+        <span>
+          <span onClick={(e) => e.stopPropagation()}>
+            <BookLink b={first} />
+          </span>{" "}
+          <span className="book-count">
+            {books.length} versions {open ? "▴" : "▾"}
+          </span>
+        </span>
+        <span className="muted small">{when(first)}</span>
+        <span className="muted small book-rating">{first.rating ? `★ ${first.rating.toFixed(1)}` : ""}</span>
+      </div>
+      {open && (
+        <ul className="book-versions">
+          {books.map((b) => (
+            <li key={b.asin} className="book-version">
+              <BookLink b={b} />
+              <span className="muted small">{when(b)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
 export default function WorkDrawer({ workKey, onClose }: { workKey: string | null; onClose: () => void }) {
   const [work, setWork] = useState<WorkDetail | null>(null);
   const [allBooks, setAllBooks] = useState(false);
@@ -122,6 +186,7 @@ export default function WorkDrawer({ workKey, onClose }: { workKey: string | nul
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const rows = work ? groupBooks(work.books) : [];
   if (!workKey) return null;
   return (
     <>
@@ -155,29 +220,29 @@ export default function WorkDrawer({ workKey, onClose }: { workKey: string | nul
             </div>
             <Tags tags={work.tags} />
             <h3>Books</h3>
-            <div className={`books-fold ${allBooks || work.books.length <= BOOKS_SHOWN ? "" : "folded"}`}>
+            <div className={`books-fold ${allBooks || rows.length <= BOOKS_SHOWN ? "" : "folded"}`}>
             <ol className="books">
-              {work.books.map((b) => (
-                <li key={b.asin}>
-                  <a href={`https://www.audible.co.uk/pd/${b.asin}`} target="_blank" rel="noreferrer">
-                    {b.sequence && <span className="seq">{b.sequence}</span>}
-                    {b.title}
-                  </a>
-                  <span className="muted small">
-                    {/* A pre-order has no year (Audible's placeholder date is dropped), length or rating */}
-                    {[b.year, hours(b.runtimeMin), b.rating ? `★ ${b.rating.toFixed(1)}` : ""].filter(Boolean).join(" · ") ||
-                      "not out yet"}
-                  </span>
-                </li>
-              ))}
+              {rows.map((group) =>
+                group.length > 1 ? (
+                  <BookGroup key={group[0].asin} books={group} />
+                ) : (
+                  <li key={group[0].asin} className="book-head">
+                    <span className="seq">{group[0].sequence}</span>
+                    <BookLink b={group[0]} />
+                    <span className="muted small">{when(group[0])}</span>
+                    {/* Its own column, so rows without a rating keep the stats lined up */}
+                    <span className="muted small book-rating">{group[0].rating ? `★ ${group[0].rating.toFixed(1)}` : ""}</span>
+                  </li>
+                ),
+              )}
             </ol>
-            {!allBooks && work.books.length > BOOKS_SHOWN && (
+            {!allBooks && rows.length > BOOKS_SHOWN && (
               <button type="button" className="books-more" onClick={() => setAllBooks(true)}>
-                {work.books.length - BOOKS_SHOWN} more · Show all
+                {rows.length - BOOKS_SHOWN} more · Show all
               </button>
             )}
             </div>
-            {allBooks && work.books.length > BOOKS_SHOWN && (
+            {allBooks && rows.length > BOOKS_SHOWN && (
               <button type="button" className="tag-suggest" onClick={() => setAllBooks(false)}>
                 Show fewer
               </button>
