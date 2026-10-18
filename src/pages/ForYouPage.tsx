@@ -39,6 +39,7 @@ export default function ForYouPage() {
       current = false;
     };
   }, [popularity]);
+  const [filledEmpty, setFilledEmpty] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { board, bucketOf } = useBoard();
@@ -105,6 +106,11 @@ export default function ForYouPage() {
     remember(POPULARITY_KEY, p);
     changeFilter({}, p);
   };
+  const fillFromBooks = async () => {
+    const suggested = await api.suggestFilter();
+    setFilledEmpty(Object.keys(suggested).length === 0);
+    if (Object.keys(suggested).length) changeFilter(suggested);
+  };
   // off -> must have -> must not have -> off
   const toggle = (tag: string) => {
     const next = { ...filter };
@@ -145,6 +151,19 @@ export default function ForYouPage() {
           onClear={clearAll}
           extraActive={Number(isActive(popularity))}
         >
+          {ranked >= 5 && (
+            <div className="tag-filter-row suggest-row">
+              <span className="tag-filter-label">from you</span>
+              <button className="tag-suggest" onClick={fillFromBooks}>
+                Fill from my books
+              </button>
+              <span className="muted small">
+                {filledEmpty
+                  ? "No clear pattern yet: rank a few more series in your top and bottom tiers."
+                  : "Requires what your S and A tiers have in common, and excludes what your D and F tiers do."}
+              </span>
+            </div>
+          )}
           <PopularitySlider value={popularity} summary={popularityText || data.popularity} onChange={changePopularity} />
         </TagFilterBar>
       )}

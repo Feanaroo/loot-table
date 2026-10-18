@@ -632,6 +632,21 @@ button.tag:hover {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+.suggest-row {
+  align-items: center;
+  flex-wrap: wrap;
+}
+.tag-suggest {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  padding: 3px 12px;
+  cursor: pointer;
+}
+.tag-suggest:hover {
+  border-color: var(--muted);
+}
 /* Popularity: mode, then a two-handle slider (two range inputs on one track) */
 .popularity-row {
   align-items: center;

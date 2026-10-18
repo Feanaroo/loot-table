@@ -3,6 +3,7 @@
 
 import { byQuality, loadIndex, type DataWork, type Index } from "./engine/data";
 import { neighbourWeights, recommend, TIERS as ENGINE_TIERS } from "./engine/recommend";
+import { suggestFilter } from "./engine/suggest";
 import { norm, similarity } from "./engine/text";
 import { ANY_POPULARITY, describe, within, type PopFilter } from "./popularity";
 import { decode, encode } from "./share";
@@ -311,6 +312,9 @@ export const api = {
 
   /** What a popularity slider setting keeps, in words */
   describePopularity: async (p: PopFilter) => describe(await load(), p),
+
+  /** Tag filters read off my tier list: what my top tiers share, and what my bottom tiers share */
+  suggestFilter: async () => suggestFilter(await load(), myRanks().ranks),
 
   /** The filter's groups: whether the series is finished, then the story tags */
   tags: async () => ({ status: STATUS_STATES, ...(await load()).data.vocab }),
