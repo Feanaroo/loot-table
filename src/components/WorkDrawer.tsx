@@ -4,6 +4,103 @@ import { Cover, StatusLine, Stars, Tags, TierButtons } from "./common";
 
 const BOOKS_SHOWN = 10;
 
+/** 0 = their top tier .. 5 = their bottom tier, whatever their tiers are called */
+const levelOf = (c: { rank: number; tiers: number }) => (c.tiers > 1 ? Math.round((c.rank / (c.tiers - 1)) * 5) : 0);
+const LEVEL_NAMES = ["Top", "2nd", "3rd", "4th", "5th", "Bottom"];
+
+/** Readers name their tiers themselves, so the same placement often comes back as many labels.
+ * The bar shows where placements fall; click parts of it to see the labels readers used there. */
+function CommunityPlacements({ placements }: { placements: WorkDetail["community"] }) {
+  const [picked, setPicked] = useState<Set<number>>(new Set([0]));
+  // Hovering a label below lights its stripe up; the id is "level:label"
+  const [hoverLabel, setHoverLabel] = useState<string | null>(null);
+  const levels = [0, 1, 2, 3, 4, 5]
+    .map((l) => {
+      const labels = new Map<string, { label: string; count: number }>();
+      let total = 0;
+      for (const c of placements) {
+        if (levelOf(c) !== l) continue;
+        total++;
+        // "S tier", "s  tier" and "S Tier" are one label
+        const label = c.label.trim().replace(/\s+/g, " ") || `#${c.rank + 1}`;
+        const key = label.toLowerCase();
+        const g = labels.get(key) ?? { label, count: 0 };
+        g.count++;
+        labels.set(key, g);
+      }
+      const sorted = [...labels.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+      return { level: l, total, labels: sorted };
+    })
+    .filter((l) => l.total > 0);
+
+  // A click shows or hides one level's labels, so several can be compared
+  const toggleLevel = (l: number) =>
+    setPicked((p) => {
+      const next = new Set(p);
+      if (next.has(l)) next.delete(l);
+      else next.add(l);
+      return next;
+    });
+  const shown = levels.filter((l) => picked.has(l.level));
+
+  return (
+    <>
+      <h3>In Reddit tier lists ({placements.length})</h3>
+      <div className="seg-bar">
+        {levels.map((l) => (
+          <button
+            key={l.level}
+            type="button"
+            className={`rank-${l.level} ${picked.has(l.level) ? "on" : ""}`}
+            style={{ flexGrow: l.total }}
+            aria-pressed={picked.has(l.level)}
+            title={`${LEVEL_NAMES[l.level]}: ${l.total} placed`}
+            onClick={() => toggleLevel(l.level)}
+          >
+            {/* Each label is a stripe, so the segment shows what readers used */}
+            <span className="seg-stripes">
+              {l.labels.map((r) => (
+                <span
+                  key={r.label}
+                  style={{ flexGrow: r.count }}
+                  className={hoverLabel === `${l.level}:${r.label}` ? "hot" : ""}
+                />
+              ))}
+            </span>
+            <span className="seg-count">{l.total}</span>
+          </button>
+        ))}
+      </div>
+      <div className="level-legend muted small">
+        <span>Top of their list</span>
+        <span>Bottom</span>
+      </div>
+      <div className="level-panel">
+        {shown.length === 0 && <div className="muted small">Click a part of the bar to see its labels.</div>}
+        {shown.map((l) => (
+          <div key={l.level} className="level-group">
+            <div className="muted small">
+              {LEVEL_NAMES[l.level]} · {l.total} placed
+            </div>
+            <div className="community-chips">
+              {l.labels.map((r) => (
+                <span
+                  key={r.label}
+                  className={`chip rank-${l.level}`}
+                  onMouseEnter={() => setHoverLabel(`${l.level}:${r.label}`)}
+                  onMouseLeave={() => setHoverLabel(null)}
+                >
+                  {r.label} <span className="chip-count">×{r.count}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 type Book = WorkDetail["books"][number];
 
 /** Books that share a place in the series (an original and its dramatized parts) fold under one row */
@@ -149,23 +246,7 @@ export default function WorkDrawer({ workKey, onClose }: { workKey: string | nul
                 Show fewer
               </button>
             )}
-            {work.community.length > 0 && (
-              <>
-                <h3>In Reddit tier lists ({work.community.length})</h3>
-                <p className="muted small">Where readers placed it, best first. Colour = how high in their own list.</p>
-                <div className="community-chips">
-                  {work.community.map((c, i) => {
-                    // 0 = their top tier .. 5 = their bottom tier, whatever their tiers are called
-                    const level = c.tiers > 1 ? Math.round((c.rank / (c.tiers - 1)) * 5) : 0;
-                    return (
-                      <span key={i} className={`chip rank-${level}`} title={`Tier ${c.rank + 1} of ${c.tiers}`}>
-                        {c.label || `#${c.rank + 1}`}
-                      </span>
-                    );
-                  })}
-                </div>
-              </>
-            )}
+            {work.community.length > 0 && <CommunityPlacements placements={work.community} />}
           </>
         )}
       </aside>
