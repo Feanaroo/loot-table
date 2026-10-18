@@ -1,6 +1,7 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { api, hours, type WorkDetail } from "../api";
-import { Cover, StatusLine, Stars, Tags, TierButtons } from "./common";
+import { Cover, StatusLine, Stars, Tags, TierButtons, type TagFilter } from "./common";
+import { flipFilterTag, readFilter, TAG_EVENT, writeFilter } from "../foryouFilter";
 
 /** 0 = their top tier .. 5 = their bottom tier, whatever their tiers are called */
 const levelOf = (c: { rank: number; tiers: number }) => (c.tiers > 1 ? Math.round((c.rank / (c.tiers - 1)) * 5) : 0);
@@ -173,6 +174,19 @@ function BookGroup({ books }: { books: Book[] }) {
 export default function WorkDrawer({ workKey, onClose }: { workKey: string | null; onClose: () => void }) {
   const [work, setWork] = useState<WorkDetail | null>(null);
   const [allBooks, setAllBooks] = useState(false);
+  // The For you filter, shown on the tags so they read as on or off
+  const [forYou, setForYou] = useState<TagFilter>(readFilter);
+  // On For you already: change its filter in place. Elsewhere: set the filter, then go there
+  const onTag = (tag: string) => {
+    if (window.location.hash === "#/foryou") {
+      window.dispatchEvent(new CustomEvent(TAG_EVENT, { detail: tag }));
+      setForYou(readFilter());
+      return;
+    }
+    writeFilter(flipFilterTag(readFilter(), tag));
+    onClose();
+    window.location.hash = "#/foryou";
+  };
 
   useEffect(() => {
     setWork(null);
@@ -218,7 +232,8 @@ export default function WorkDrawer({ workKey, onClose }: { workKey: string | nul
                 </a>
               </div>
             </div>
-            <Tags tags={work.tags} />
+            {Object.values(work.tags ?? {}).some((t) => t.length > 0) && <h3>Tags</h3>}
+            <Tags tags={work.tags} filter={forYou} onToggle={onTag} />
             <h3>Books</h3>
             <div className={`books-fold ${allBooks || rows.length <= BOOKS_SHOWN ? "" : "folded"}`}>
             <ol className="books">

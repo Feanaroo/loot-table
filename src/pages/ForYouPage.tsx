@@ -6,8 +6,8 @@ import LikeBookSearch from "../components/LikeBookSearch";
 import PopularitySlider from "../components/PopularitySlider";
 import TagFilterBar from "../components/TagFilterBar";
 import { ANY_POPULARITY, isActive, type PopFilter } from "../popularity";
+import { FILTER_KEY, flipFilterTag, readFilter, TAG_EVENT } from "../foryouFilter";
 
-const FILTER_KEY = "foryou.tagFilter";
 const POPULARITY_KEY = "foryou.popularity";
 const SOFT_KEY = "foryou.soft";
 
@@ -27,18 +27,10 @@ function loadSoft(): boolean {
   }
 }
 
-function loadFilter(): TagFilter {
-  try {
-    return JSON.parse(localStorage.getItem(FILTER_KEY) ?? "{}");
-  } catch {
-    return {};
-  }
-}
-
 export default function ForYouPage() {
   const [data, setData] = useState<Recommendations | null>(null);
   const [vocab, setVocab] = useState<Record<string, string[]> | null>(null);
-  const [filter, setFilter] = useState<TagFilter>(loadFilter);
+  const [filter, setFilter] = useState<TagFilter>(readFilter);
   const [popularity, setPopularity] = useState<PopFilter>(loadPopularity);
   const [popularityText, setPopularityText] = useState("");
   // In words as the handle moves, before the picks are rescored
@@ -208,6 +200,17 @@ export default function ForYouPage() {
     setWhy([]);
     changeFilter(next);
   };
+  // A tag clicked in the book drawer: add it, or remove it if it's already there
+  const flipRef = useRef<(tag: string) => void>(() => {});
+  flipRef.current = (tag: string) => {
+    setWhy([]);
+    changeFilter(flipFilterTag(filterRef.current, tag));
+  };
+  useEffect(() => {
+    const onTag = (e: Event) => flipRef.current((e as CustomEvent<string>).detail);
+    window.addEventListener(TAG_EVENT, onTag);
+    return () => window.removeEventListener(TAG_EVENT, onTag);
+  }, []);
 
   if (error) return <div className="error">{error}</div>;
   if (!data) return <div className="muted">Scoring…</div>;
