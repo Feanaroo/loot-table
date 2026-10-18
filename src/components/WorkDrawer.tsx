@@ -120,6 +120,34 @@ function groupBooks(books: Book[]): Book[][] {
   return [...groups.values()];
 }
 
+/** Audible ratings are out of 5; the colour steps show where a book sits */
+const ratingLevel = (r: number | null) => (r === null ? "none" : r >= 4.8 ? "top" : r >= 4.6 ? "high" : r >= 4.4 ? "mid" : "low");
+
+/** One book as a tile in the ratings grid: its place in the series, and its rating */
+function RatingTile({ b }: { b: Book }) {
+  return (
+    <a
+      className={`rating-tile r-${ratingLevel(b.rating)}`}
+      href={`https://www.audible.co.uk/pd/${b.asin}`}
+      target="_blank"
+      rel="noreferrer"
+      title={`${b.title}${b.rating ? ` · ★ ${b.rating.toFixed(1)}` : ""}`}
+    >
+      <span className="rating-seq">{b.sequence ? `Book ${b.sequence}` : ""}</span>
+      <span className="rating-year">{b.year ?? ""}</span>
+      <b>{b.rating ? b.rating.toFixed(1) : "–"}</b>
+    </a>
+  );
+}
+
+const RATING_LEGEND: [string, string][] = [
+  ["top", "4.8 and up"],
+  ["high", "4.6 to 4.7"],
+  ["mid", "4.4 to 4.5"],
+  ["low", "under 4.4"],
+  ["none", "no rating"],
+];
+
 const when = (b: Book) => [b.year, hours(b.runtimeMin)].filter(Boolean).join(" · ") || "not out yet";
 const BookLink = ({ b }: { b: Book }) => (
   <a href={`https://www.audible.co.uk/pd/${b.asin}`} target="_blank" rel="noreferrer">
@@ -284,6 +312,7 @@ function CompactHeader({ work }: { work: WorkDetail }) {
 export default function WorkDrawer({ workKey, onClose }: { workKey: string | null; onClose: () => void }) {
   const [work, setWork] = useState<WorkDetail | null>(null);
   const [allBooks, setAllBooks] = useState(false);
+  const [booksView, setBooksView] = useState<"list" | "ratings">("list");
   const [compact, setCompact] = useState(() => {
     try {
       return localStorage.getItem(HEADER_KEY) === "compact";
@@ -348,7 +377,34 @@ export default function WorkDrawer({ workKey, onClose }: { workKey: string | nul
             {compact ? <CompactHeader work={work} /> : <HeroHeader work={work} />}
             {Object.values(work.tags ?? {}).some((t) => t.length > 0) && <h3>Tags</h3>}
             <Tags tags={work.tags} filter={forYou} onToggle={onTag} />
-            <h3>Books</h3>
+            <div className="section-head">
+              <h3>Books</h3>
+              <div className="books-switch" role="group" aria-label="Books layout">
+                {(["list", "ratings"] as const).map((v) => (
+                  <button key={v} type="button" className={booksView === v ? "on" : ""} onClick={() => setBooksView(v)}>
+                    {v === "list" ? "List" : "Ratings"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {booksView === "ratings" ? (
+              <div className="rating-grid">
+                {work.books.map((b) => (
+                  <RatingTile key={b.asin} b={b} />
+                ))}
+              </div>
+            ) : null}
+            {booksView === "ratings" ? (
+              <div className="rating-legend muted small">
+                {RATING_LEGEND.map(([level, text]) => (
+                  <span key={level}>
+                    <i className={`swatch r-${level}`} />
+                    {text}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <>
             <div className={`books-fold ${allBooks || rows.length <= BOOKS_SHOWN ? "" : "folded"}`}>
             <ol className="books">
               {rows.map((group) =>
@@ -375,6 +431,8 @@ export default function WorkDrawer({ workKey, onClose }: { workKey: string | nul
               <button type="button" className="books-less" onClick={() => setAllBooks(false)}>
                 Show fewer
               </button>
+            )}
+              </>
             )}
             {work.community.length > 0 && <CommunityPlacements placements={work.community} />}
           </>
