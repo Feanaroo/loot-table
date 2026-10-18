@@ -17,8 +17,9 @@ r/ProgressionFantasy, matched to what's on Audible UK.
   and compare someone's shared list with yours. **Export / Import** it as a file, to move it between
   computers or from the website to the app.
 
-Everything runs on your computer. Your tier list never leaves it: no account, no server, no
-tracking.
+Everything runs on your computer. Your tier list never leaves it: no account, no server. The
+website counts page visits with [GoatCounter](https://www.goatcounter.com) (no cookies, nothing
+personal, and never what's on your list); the desktop app counts nothing.
 
 ![Your tier list, and search to fill it](docs/screenshots/2-tier-list.png)
 
