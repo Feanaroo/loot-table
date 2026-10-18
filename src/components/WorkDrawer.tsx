@@ -9,12 +9,9 @@ const LEVEL_NAMES = ["Top", "2nd", "3rd", "4th", "5th", "Bottom"];
 /** Readers name their tiers themselves, so the same placement often comes back as many labels.
  * The bar shows where placements fall; pick a part of it to see the labels readers used there. */
 function CommunityPlacements({ placements }: { placements: WorkDetail["community"] }) {
-  // Temporary: "segments" and "labels" are two layouts side by side for review
-  const [view, setView] = useState<"segments" | "labels">("segments");
   const [picked, setPicked] = useState<Set<number>>(new Set([0]));
   // Hovering a label below lights its stripe up; the id is "level:label"
   const [hoverLabel, setHoverLabel] = useState<string | null>(null);
-  const [stripe, setStripe] = useState<string | null>(null);
   const perLevel = [0, 1, 2, 3, 4, 5].map((l) => placements.filter((c) => levelOf(c) === l).length);
 
   const levels = [0, 1, 2, 3, 4, 5]
@@ -48,108 +45,62 @@ function CommunityPlacements({ placements }: { placements: WorkDetail["community
     });
   };
   const shown = levels.filter((l) => picked.has(l.level));
-  const stripes = levels.flatMap((l) => l.labels.map((r) => ({ ...r, level: l.level, id: `${l.level}:${r.label}` })));
-  const chosen = stripes.find((s) => s.id === stripe);
 
   return (
     <>
-      <div className="community-head">
-        <h3>In Reddit tier lists ({placements.length})</h3>
-        <div className="view-switch" role="group" aria-label="Layout">
-          {(["segments", "labels"] as const).map((v) => (
-            <button key={v} type="button" className={view === v ? "on" : ""} onClick={() => setView(v)}>
-              {v === "segments" ? "Segments" : "Labels"}
-            </button>
-          ))}
-        </div>
+      <h3>In Reddit tier lists ({placements.length})</h3>
+      <div className="seg-bar">
+        {levels.map((l) => (
+          <button
+            key={l.level}
+            type="button"
+            className={`rank-${l.level} ${picked.has(l.level) ? "on" : ""}`}
+            style={{ flexGrow: l.total }}
+            aria-pressed={picked.has(l.level)}
+            title={`${LEVEL_NAMES[l.level]}: ${l.total} placed. Shift- or Ctrl-click to compare`}
+            onClick={(e) => pickLevel(e, l.level)}
+          >
+            {/* Each label is a stripe, so the segment shows what readers used */}
+            <span className="seg-stripes">
+              {l.labels.map((r) => (
+                <span
+                  key={r.label}
+                  style={{ flexGrow: r.count }}
+                  className={hoverLabel === `${l.level}:${r.label}` ? "hot" : ""}
+                />
+              ))}
+            </span>
+            <span className="seg-count">{l.total}</span>
+          </button>
+        ))}
       </div>
-
-      {view === "segments" && (
-        <>
-          <div className="seg-bar">
-            {levels.map((l) => (
-              <button
-                key={l.level}
-                type="button"
-                className={`rank-${l.level} ${picked.has(l.level) ? "on" : ""}`}
-                style={{ flexGrow: l.total }}
-                aria-pressed={picked.has(l.level)}
-                title={`${LEVEL_NAMES[l.level]}: ${l.total} placed. Shift- or Ctrl-click to compare`}
-                onClick={(e) => pickLevel(e, l.level)}
-              >
-                {/* Each label is a stripe, as in the Labels view, so the segment shows what readers used */}
-                <span className="seg-stripes">
-                  {l.labels.map((r) => (
-                    <span
-                      key={r.label}
-                      style={{ flexGrow: r.count }}
-                      className={hoverLabel === `${l.level}:${r.label}` ? "hot" : ""}
-                    />
-                  ))}
+      <div className="level-legend muted small">
+        <span>Top of their list</span>
+        <span>Shift-click to show several levels</span>
+        <span>Bottom</span>
+      </div>
+      <div className="level-panel">
+        {shown.length === 0 && <div className="muted small">Pick a segment to see its labels.</div>}
+        {shown.map((l) => (
+          <div key={l.level} className="level-group">
+            <div className="muted small">
+              {LEVEL_NAMES[l.level]} · {l.total} placed
+            </div>
+            <div className="community-chips">
+              {l.labels.map((r) => (
+                <span
+                  key={r.label}
+                  className={`chip rank-${l.level}`}
+                  onMouseEnter={() => setHoverLabel(`${l.level}:${r.label}`)}
+                  onMouseLeave={() => setHoverLabel(null)}
+                >
+                  {r.label} <span className="chip-count">×{r.count}</span>
                 </span>
-                <span className="seg-count">{l.total}</span>
-              </button>
-            ))}
+              ))}
+            </div>
           </div>
-          <div className="level-legend muted small">
-            <span>Top of their list</span>
-            <span>Bottom</span>
-          </div>
-          <div className="level-panel">
-            {shown.length === 0 && <div className="muted small">Pick a segment to see its labels.</div>}
-            {shown.map((l) => (
-              <div key={l.level} className="level-group">
-                <div className="muted small">
-                  {LEVEL_NAMES[l.level]} · {l.total} placed
-                </div>
-                <div className="community-chips">
-                  {l.labels.map((r) => (
-                    <span
-                      key={r.label}
-                      className={`chip rank-${l.level}`}
-                      onMouseEnter={() => setHoverLabel(`${l.level}:${r.label}`)}
-                      onMouseLeave={() => setHoverLabel(null)}
-                    >
-                      {r.label} <span className="chip-count">×{r.count}</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {view === "labels" && (
-        <>
-          <div className="label-bar">
-            {stripes.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                className={`rank-${s.level} ${s.id === stripe ? "on" : ""}`}
-                style={{ flexGrow: s.count }}
-                aria-label={`${s.label}, ${s.count} readers`}
-                aria-pressed={s.id === stripe}
-                onClick={() => setStripe(s.id === stripe ? null : s.id)}
-              />
-            ))}
-          </div>
-          <div className="level-legend muted small">
-            <span>Top of their list</span>
-            <span>Bottom</span>
-          </div>
-          <div className="level-panel muted small">
-            {chosen ? (
-              <>
-                <span className="level-panel-label">{chosen.label}</span> · ×{chosen.count} · {LEVEL_NAMES[chosen.level]}
-              </>
-            ) : (
-              "Each stripe is one label, sized by how many readers used it. Pick one to see its name."
-            )}
-          </div>
-        </>
-      )}
+        ))}
+      </div>
     </>
   );
 }
