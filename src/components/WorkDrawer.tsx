@@ -155,6 +155,10 @@ const BookLink = ({ b }: { b: Book }) => (
   </a>
 );
 
+const BookRating = ({ b }: { b: Book }) => (
+  <span className="muted small book-rating">{b.rating ? `★ ${b.rating.toFixed(1)}` : ""}</span>
+);
+
 function BookGroup({ books }: { books: Book[] }) {
   const [open, setOpen] = useState(false);
   const first = books[0];
@@ -184,7 +188,7 @@ function BookGroup({ books }: { books: Book[] }) {
           </span>
         </span>
         <span className="muted small">{when(first)}</span>
-        <span className="muted small book-rating">{first.rating ? `★ ${first.rating.toFixed(1)}` : ""}</span>
+        <BookRating b={first} />
       </div>
       {open && (
         <ul className="book-versions">
@@ -388,50 +392,50 @@ export default function WorkDrawer({ workKey, onClose }: { workKey: string | nul
               </div>
             </div>
             {booksView === "ratings" ? (
-              <div className="rating-grid">
-                {work.books.map((b) => (
-                  <RatingTile key={b.asin} b={b} />
-                ))}
-              </div>
-            ) : null}
-            {booksView === "ratings" ? (
-              <div className="rating-legend muted small">
-                {RATING_LEGEND.map(([level, text]) => (
-                  <span key={level}>
-                    <i className={`swatch r-${level}`} />
-                    {text}
-                  </span>
-                ))}
-              </div>
+              <>
+                <div className="rating-grid">
+                  {work.books.map((b) => (
+                    <RatingTile key={b.asin} b={b} />
+                  ))}
+                </div>
+                <div className="rating-legend muted small">
+                  {RATING_LEGEND.map(([level, text]) => (
+                    <span key={level}>
+                      <i className={`swatch r-${level}`} />
+                      {text}
+                    </span>
+                  ))}
+                </div>
+              </>
             ) : (
               <>
-            <div className={`books-fold ${allBooks || rows.length <= BOOKS_SHOWN ? "" : "folded"}`}>
-            <ol className="books">
-              {rows.map((group) =>
-                group.length > 1 ? (
-                  <BookGroup key={group[0].asin} books={group} />
-                ) : (
-                  <li key={group[0].asin} className="book-head">
-                    <span className="seq">{group[0].sequence}</span>
-                    <BookLink b={group[0]} />
-                    <span className="muted small">{when(group[0])}</span>
-                    {/* Its own column, so rows without a rating keep the stats lined up */}
-                    <span className="muted small book-rating">{group[0].rating ? `★ ${group[0].rating.toFixed(1)}` : ""}</span>
-                  </li>
-                ),
-              )}
-            </ol>
-            {!allBooks && rows.length > BOOKS_SHOWN && (
-              <button type="button" className="books-more" onClick={() => setAllBooks(true)}>
-                {rows.length - BOOKS_SHOWN} more · Show all
-              </button>
-            )}
-            </div>
-            {allBooks && rows.length > BOOKS_SHOWN && (
-              <button type="button" className="books-less" onClick={() => setAllBooks(false)}>
-                Show fewer
-              </button>
-            )}
+                <div className={`books-fold ${allBooks || rows.length <= BOOKS_SHOWN ? "" : "folded"}`}>
+                  <ol className="books">
+                    {rows.map((group) =>
+                      group.length > 1 ? (
+                        <BookGroup key={group[0].asin} books={group} />
+                      ) : (
+                        <li key={group[0].asin} className="book-head">
+                          <span className="seq">{group[0].sequence}</span>
+                          <BookLink b={group[0]} />
+                          <span className="muted small">{when(group[0])}</span>
+                          {/* Its own column, so rows without a rating keep the stats lined up */}
+                          <BookRating b={group[0]} />
+                        </li>
+                      ),
+                    )}
+                  </ol>
+                  {!allBooks && rows.length > BOOKS_SHOWN && (
+                    <button type="button" className="books-more" onClick={() => setAllBooks(true)}>
+                      {rows.length - BOOKS_SHOWN} more · Show all
+                    </button>
+                  )}
+                </div>
+                {allBooks && rows.length > BOOKS_SHOWN && (
+                  <button type="button" className="books-less" onClick={() => setAllBooks(false)}>
+                    Show fewer
+                  </button>
+                )}
               </>
             )}
             {work.community.length > 0 && <CommunityPlacements placements={work.community} />}
