@@ -47,8 +47,8 @@ describe("suggest", () => {
 
   it("says which of your series each tag comes from", () => {
     const { reasons } = suggest(index, ranks);
-    expect(reasons).toContain("Requires time loop: in a, b, which you rank high.");
-    expect(reasons).toContain("Excludes harem: in c, d, which you rank low.");
+    expect(reasons).toContain("Prefers time loop: in a, b, which you rank high.");
+    expect(reasons).toContain("Avoids harem: in c, d, which you rank low.");
   });
 
   it("leaves popularity alone unless your top series are mostly the less known", () => {

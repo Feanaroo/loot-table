@@ -8,12 +8,21 @@ import { ANY_POPULARITY, isActive, type PopFilter } from "../popularity";
 
 const FILTER_KEY = "foryou.tagFilter";
 const POPULARITY_KEY = "foryou.popularity";
+const SOFT_KEY = "foryou.soft";
 
 function loadPopularity(): PopFilter {
   try {
     return { ...ANY_POPULARITY, ...JSON.parse(localStorage.getItem(POPULARITY_KEY) ?? "{}") };
   } catch {
     return ANY_POPULARITY;
+  }
+}
+
+function loadSoft(): boolean {
+  try {
+    return localStorage.getItem(SOFT_KEY) === "1";
+  } catch {
+    return false;
   }
 }
 
@@ -39,6 +48,7 @@ export default function ForYouPage() {
       current = false;
     };
   }, [popularity]);
+  const [soft, setSoft] = useState(loadSoft);
   const [why, setWhy] = useState<string[]>([]);
   const [filledEmpty, setFilledEmpty] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -52,11 +62,11 @@ export default function ForYouPage() {
     api.tags().then(setVocab, () => setVocab({}));
   }, []);
 
-  const load = useCallback((f: TagFilter, p: PopFilter) => {
+  const load = useCallback((f: TagFilter, p: PopFilter, soft: boolean) => {
     const id = ++request.current;
     setLoading(true);
     const pick = (state: "in" | "out") => Object.keys(f).filter((k) => f[k] === state);
-    api.recommendations(pick("in"), pick("out"), p).then(
+    api.recommendations(pick("in"), pick("out"), p, 60, soft).then(
       (d) => {
         // A slow answer to an older filter mustn't replace a newer one
         if (id !== request.current) return;
@@ -74,9 +84,11 @@ export default function ForYouPage() {
   filterRef.current = filter;
   const popularityRef = useRef(popularity);
   popularityRef.current = popularity;
+  const softRef = useRef(soft);
+  softRef.current = soft;
   const first = useRef(true);
   useEffect(() => {
-    const t = window.setTimeout(() => load(filterRef.current, popularityRef.current), first.current ? 0 : 700);
+    const t = window.setTimeout(() => load(filterRef.current, popularityRef.current, softRef.current), first.current ? 0 : 700);
     first.current = false;
     return () => window.clearTimeout(t);
   }, [signature, load]);
@@ -88,10 +100,19 @@ export default function ForYouPage() {
       // private window: the filter just isn't remembered
     }
   };
-  const changeFilter = (next: TagFilter, p: PopFilter = popularity) => {
+  const changeFilter = (next: TagFilter, p: PopFilter = popularity, s: boolean = soft) => {
     setFilter(next);
     remember(FILTER_KEY, next);
-    load(next, p);
+    load(next, p, s);
+  };
+  const changeSoft = (s: boolean) => {
+    setSoft(s);
+    try {
+      localStorage.setItem(SOFT_KEY, s ? "1" : "0");
+    } catch {
+      // private window: the choice just isn't remembered
+    }
+    load(filter, popularity, s);
   };
   // Dragging fires many changes: score once the handle rests
   const slide = useRef<number>();
@@ -99,7 +120,7 @@ export default function ForYouPage() {
     setPopularity(p);
     remember(POPULARITY_KEY, p);
     window.clearTimeout(slide.current);
-    slide.current = window.setTimeout(() => load(filterRef.current, p), 200);
+    slide.current = window.setTimeout(() => load(filterRef.current, p, softRef.current), 200);
   };
   const clearAll = () => {
     const p = { ...popularity, min: 0, max: 100 };
@@ -117,7 +138,14 @@ export default function ForYouPage() {
     const p = s.popularity ?? popularity;
     setPopularity(p);
     remember(POPULARITY_KEY, p);
-    changeFilter(s.filter, p);
+    // What the books suggest are leanings, not rules: they shouldn't be able to empty the picks
+    setSoft(true);
+    try {
+      localStorage.setItem(SOFT_KEY, "1");
+    } catch {
+      // private window
+    }
+    changeFilter(s.filter, p, true);
   };
   // off -> must have -> must not have -> off
   const toggle = (tag: string) => {
@@ -134,7 +162,7 @@ export default function ForYouPage() {
 
   // Ranked from this page: hide until the next refresh rather than jumping the grid
   const items = data.items.filter((r) => !bucketOf(r.key));
-  const filtered = Object.keys(filter).length > 0 || isActive(popularity);
+  const filtered = (!soft && Object.keys(filter).length > 0) || isActive(popularity);
 
   return (
     <div>
@@ -156,6 +184,7 @@ export default function ForYouPage() {
           vocab={vocab}
           counts={data.tagCounts}
           filter={filter}
+          soft={soft}
           onToggle={toggle}
           onClear={clearAll}
           extraActive={Number(isActive(popularity))}
@@ -170,6 +199,20 @@ export default function ForYouPage() {
                 {filledEmpty
                   ? "No clear pattern yet: rank a few more series in your top and bottom tiers."
                   : "Sets the filters from what your S and A tiers have in common, and what your D and F tiers do."}
+              </span>
+            </div>
+          )}
+          {Object.keys(filter).length > 0 && (
+            <div className="tag-filter-row suggest-row">
+              <span className="tag-filter-label">tags</span>
+              <label className="small">
+                <input type="checkbox" checked={soft} onChange={(e) => changeSoft(e.target.checked)} /> Prefer, don't
+                require
+              </label>
+              <span className="muted small">
+                {soft
+                  ? "Picks with your tags rank higher, picks with the ones you avoid rank lower; nothing is hidden."
+                  : "Only picks that pass every tag are shown."}
               </span>
             </div>
           )}

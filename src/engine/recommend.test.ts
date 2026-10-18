@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { buildIndex, type Dataset } from "./data";
-import { recommend, TIERS } from "./recommend";
+import { applyPreferences, recommend, TIERS } from "./recommend";
 import expected from "./__fixtures__/python-recs.json";
 
 const data: Dataset = JSON.parse(readFileSync(new URL("../../public/data.json", import.meta.url), "utf-8"));
@@ -37,5 +37,24 @@ describe("recommend", () => {
     const all = recommend(index, ranks, listened);
     expect(all.some((r) => listened.has(r.key))).toBe(false);
     expect(all.some((r) => !index.works.get(r.key)!.core)).toBe(false);
+  });
+});
+
+describe("applyPreferences", () => {
+  const recs = [
+    { id: "plain", score: 1, reasons: [] as string[] },
+    { id: "loop", score: 0.5, reasons: [] as string[] },
+    { id: "harem", score: 1.2, reasons: [] as string[] },
+  ];
+  const tags: Record<string, string[]> = { loop: ["story:time loop"], harem: ["story:harem"], plain: [] };
+  const ranked = applyPreferences(recs, (r) => new Set(tags[r.id]), ["story:time loop"], ["story:harem"]);
+
+  it("moves picks up or down without removing any", () => {
+    expect(ranked.map((r) => r.id)).toEqual(["loop", "plain", "harem"]);
+  });
+
+  it("says why", () => {
+    expect(ranked[0].reasons[0]).toBe("matches what you prefer: time loop");
+    expect(ranked[2].reasons[0]).toBe("has harem, which you'd rather avoid");
   });
 });

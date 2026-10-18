@@ -224,3 +224,29 @@ export function recommend(index: Index, myRanks: Map<string, number>, listened: 
     return true;
   });
 }
+
+const PREFER_BONUS = 0.6; // per preferred tag a pick has
+const AVOID_PENALTY = 0.8; // per avoided tag a pick has
+
+/** "Prefer, don't require": tags the user leans towards or away from move picks up or down the
+ * ranking instead of removing them. Returns a new list, best first, with a reason added to the
+ * picks it moved. */
+export function applyPreferences<T extends { score: number; reasons: string[] }>(
+  recs: T[],
+  tagsOf: (rec: T) => Set<string>,
+  prefer: string[],
+  avoid: string[],
+): T[] {
+  const label = (t: string) => t.split(":").slice(1).join(":");
+  return recs
+    .map((r) => {
+      const tags = tagsOf(r);
+      const liked = prefer.filter((t) => tags.has(t));
+      const disliked = avoid.filter((t) => tags.has(t));
+      const reasons = [...r.reasons];
+      if (disliked.length) reasons.unshift(`has ${disliked.map(label).join(", ")}, which you'd rather avoid`);
+      if (liked.length) reasons.unshift(`matches what you prefer: ${liked.map(label).join(", ")}`);
+      return { ...r, reasons, score: r.score + PREFER_BONUS * liked.length - AVOID_PENALTY * disliked.length };
+    })
+    .sort((a, b) => b.score - a.score); // stable: ties keep their order
+}

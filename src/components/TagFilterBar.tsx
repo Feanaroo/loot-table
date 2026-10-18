@@ -7,6 +7,7 @@ export default function TagFilterBar({
   vocab,
   counts,
   filter,
+  soft = false,
   onToggle,
   onClear,
   extraActive = 0,
@@ -15,6 +16,8 @@ export default function TagFilterBar({
   vocab: Record<string, string[]>;
   counts: Record<string, number>;
   filter: TagFilter;
+  /** Tags prefer / avoid instead of require / exclude */
+  soft?: boolean;
   onToggle: (tag: string) => void;
   onClear: () => void;
   /** Filters set outside the tag rows (the popularity slider), for the Clear button */
@@ -38,7 +41,13 @@ export default function TagFilterBar({
                 <button
                   key={key}
                   className={`tag tag-${g} ${state ? `tag-${state}` : ""} ${!state && !n ? "tag-empty" : ""}`}
-                  title={state === "in" ? "Must have · click to exclude" : state === "out" ? "Excluded · click to clear" : "Click to require"}
+                  title={
+                    state === "in"
+                      ? soft ? "Preferred · click to avoid" : "Must have · click to exclude"
+                      : state === "out"
+                        ? soft ? "Avoided · click to clear" : "Excluded · click to clear"
+                        : soft ? "Click to prefer" : "Click to require"
+                  }
                   onClick={() => onToggle(key)}
                 >
                   {state === "out" ? "not " : ""}

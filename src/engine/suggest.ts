@@ -55,8 +55,8 @@ export function suggest(index: Index, myRanks: Map<string, number>): Suggestion 
     const from = (state === "in" ? liked : disliked).filter((k) => index.tagSets.get(k)?.has(tag));
     reasons.push(
       state === "in"
-        ? `Requires ${label(tag)}: in ${list(from.map(title))}, which you rank high.`
-        : `Excludes ${label(tag)}: in ${list(from.map(title))}, which you rank low.`,
+        ? `Prefers ${label(tag)}: in ${list(from.map(title))}, which you rank high.`
+        : `Avoids ${label(tag)}: in ${list(from.map(title))}, which you rank low.`,
     );
   }
 
@@ -66,7 +66,7 @@ export function suggest(index: Index, myRanks: Map<string, number>): Suggestion 
   const finished = known.filter((k) => ["complete", "standalone"].includes(statusOf(k)!));
   if (known.length >= MIN_STATUS_SERIES && finished.length / known.length >= MIN_FINISHED_SHARE) {
     for (const s of UNFINISHED) filter[`status:${s}`] = "out";
-    reasons.push(`Only finished series: ${finished.length} of your ${known.length} top series are.`);
+    reasons.push(`Avoids unfinished series: ${finished.length} of your ${known.length} top series are.`);
   }
 
   // Popularity: only to keep the well-known out when your top series are mostly the less known
