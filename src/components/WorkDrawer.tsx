@@ -15,13 +15,13 @@ function CommunityPlacements({ placements }: { placements: WorkDetail["community
   const [picked, setPicked] = useState<Set<number>>(new Set([0]));
   // Hovering a label below lights its stripe up; the id is "level:label"
   const [hoverLabel, setHoverLabel] = useState<string | null>(null);
-  const perLevel = [0, 1, 2, 3, 4, 5].map((l) => placements.filter((c) => levelOf(c) === l).length);
-
   const levels = [0, 1, 2, 3, 4, 5]
     .map((l) => {
       const labels = new Map<string, { label: string; count: number }>();
+      let total = 0;
       for (const c of placements) {
         if (levelOf(c) !== l) continue;
+        total++;
         const label = c.label.trim().replace(/\s+/g, " ") || `#${c.rank + 1}`;
         const key = label.toLowerCase();
         const g = labels.get(key) ?? { label, count: 0 };
@@ -29,7 +29,7 @@ function CommunityPlacements({ placements }: { placements: WorkDetail["community
         labels.set(key, g);
       }
       const sorted = [...labels.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
-      return { level: l, total: perLevel[l], labels: sorted };
+      return { level: l, total, labels: sorted };
     })
     .filter((l) => l.total > 0);
 
