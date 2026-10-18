@@ -1172,3 +1172,42 @@ button.link {
   color: var(--muted);
   cursor: pointer;
 }
+
+/* Long book lists fold after ten rows; a fade and a button say how many are hidden */
+.books-fold {
+  position: relative;
+}
+.books-fold.folded {
+  max-height: 340px;
+  overflow: hidden;
+}
+.books-fold.folded::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 140px;
+  background: linear-gradient(to bottom, transparent, var(--panel) 70%);
+  pointer-events: none;
+}
+.books-more {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 1;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+.books-more:hover {
+  border-color: var(--muted);
+}

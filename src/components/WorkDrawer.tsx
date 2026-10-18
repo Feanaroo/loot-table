@@ -5,6 +5,7 @@ import { Cover, StatusLine, Stars, Tags, TierButtons } from "./common";
 /** 0 = their top tier .. 5 = their bottom tier, whatever their tiers are called */
 const levelOf = (c: { rank: number; tiers: number }) => (c.tiers > 1 ? Math.round((c.rank / (c.tiers - 1)) * 5) : 0);
 const LEVEL_NAMES = ["Top", "2nd", "3rd", "4th", "5th", "Bottom"];
+const BOOKS_SHOWN = 10;
 
 /** Readers name their tiers themselves, so the same placement often comes back as many labels.
  * The bar shows where placements fall; pick a part of it to see the labels readers used there. */
@@ -107,9 +108,11 @@ function CommunityPlacements({ placements }: { placements: WorkDetail["community
 
 export default function WorkDrawer({ workKey, onClose }: { workKey: string | null; onClose: () => void }) {
   const [work, setWork] = useState<WorkDetail | null>(null);
+  const [allBooks, setAllBooks] = useState(false);
 
   useEffect(() => {
     setWork(null);
+    setAllBooks(false);
     if (workKey) api.work(workKey).then(setWork);
   }, [workKey]);
 
@@ -152,6 +155,7 @@ export default function WorkDrawer({ workKey, onClose }: { workKey: string | nul
             </div>
             <Tags tags={work.tags} />
             <h3>Books</h3>
+            <div className={`books-fold ${allBooks || work.books.length <= BOOKS_SHOWN ? "" : "folded"}`}>
             <ol className="books">
               {work.books.map((b) => (
                 <li key={b.asin}>
@@ -167,6 +171,17 @@ export default function WorkDrawer({ workKey, onClose }: { workKey: string | nul
                 </li>
               ))}
             </ol>
+            {!allBooks && work.books.length > BOOKS_SHOWN && (
+              <button type="button" className="books-more" onClick={() => setAllBooks(true)}>
+                {work.books.length - BOOKS_SHOWN} more · Show all
+              </button>
+            )}
+            </div>
+            {allBooks && work.books.length > BOOKS_SHOWN && (
+              <button type="button" className="tag-suggest" onClick={() => setAllBooks(false)}>
+                Show fewer
+              </button>
+            )}
             {work.community.length > 0 && <CommunityPlacements placements={work.community} />}
           </>
         )}
