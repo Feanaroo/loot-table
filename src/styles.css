@@ -511,18 +511,6 @@ main {
   border: none;
   background: none;
 }
-.drawer-head {
-  display: flex;
-  gap: 18px;
-}
-.drawer-head h2 {
-  margin: 0 0 4px;
-}
-.drawer-head .meta {
-  display: flex;
-  gap: 12px;
-  margin: 6px 0;
-}
 .audible-link {
   display: inline-block;
   margin-top: 10px;
