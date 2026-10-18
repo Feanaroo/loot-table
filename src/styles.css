@@ -847,6 +847,147 @@ button.tag:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.community-chips {
+  margin-top: 6px;
+}
+.community-chips .chip {
+  white-space: normal;
+  max-width: 100%;
+}
+.chip-count {
+  opacity: 0.65;
+  font-weight: 600;
+}
+.community-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.community-head h3 {
+  margin-right: 8px;
+}
+.view-switch {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.view-switch button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.view-switch button.on {
+  background: var(--panel-2);
+  color: var(--text);
+}
+.seg-bar,
+.label-bar {
+  display: flex;
+  gap: 2px;
+  margin-top: 10px;
+}
+.seg-bar {
+  height: 30px;
+}
+.label-bar {
+  height: 26px;
+  gap: 1px;
+}
+.seg-bar button,
+.label-bar button {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1b1b1b;
+  overflow: hidden;
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0.4;
+}
+.seg-bar button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border-radius: 4px;
+}
+/* Only the hovered label's stripe lights up; its segment is made fully visible so the stripe reads */
+.seg-bar button:has(.seg-stripes span.hot) {
+  opacity: 1;
+}
+.seg-stripes span.hot {
+  filter: brightness(1.4);
+  box-shadow: inset 0 0 0 1px var(--text);
+}
+.seg-bar button.on,
+.label-bar button.on {
+  opacity: 1;
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+.seg-stripes {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  gap: 1px;
+  background: rgba(0, 0, 0, 0.35);
+}
+.seg-stripes span {
+  min-width: 0;
+  background: var(--c);
+}
+.seg-count {
+  position: relative;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: rgba(18, 19, 23, 0.6);
+  color: #fff;
+}
+.seg-bar .rank-0 { --c: var(--tier-S); }
+.seg-bar .rank-1 { --c: var(--tier-A); }
+.seg-bar .rank-2 { --c: var(--tier-B); }
+.seg-bar .rank-3 { --c: var(--tier-C); }
+.seg-bar .rank-4 { --c: var(--tier-D); }
+.seg-bar .rank-5 { --c: var(--tier-F); }
+.label-bar .rank-0 { background: var(--tier-S); }
+.label-bar .rank-1 { background: var(--tier-A); }
+.label-bar .rank-2 { background: var(--tier-B); }
+.label-bar .rank-3 { background: var(--tier-C); }
+.label-bar .rank-4 { background: var(--tier-D); }
+.label-bar .rank-5 { background: var(--tier-F); }
+.label-bar button:focus-visible,
+.seg-bar button:focus-visible,
+.view-switch button:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+.level-legend {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+.level-panel {
+  margin-top: 10px;
+  min-height: 24px;
+}
+.level-panel-label {
+  color: var(--text);
+  font-weight: 600;
+}
+.chip.rank-0 { background: var(--tier-S); }
 .chip.rank-0 { background: var(--tier-S); }
 .chip.rank-1 { background: var(--tier-A); }
 .chip.rank-2 { background: var(--tier-B); }

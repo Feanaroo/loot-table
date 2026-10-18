@@ -1,6 +1,158 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { api, hours, type WorkDetail } from "../api";
 import { Cover, StatusLine, Stars, Tags, TierButtons } from "./common";
+
+/** 0 = their top tier .. 5 = their bottom tier, whatever their tiers are called */
+const levelOf = (c: { rank: number; tiers: number }) => (c.tiers > 1 ? Math.round((c.rank / (c.tiers - 1)) * 5) : 0);
+const LEVEL_NAMES = ["Top", "2nd", "3rd", "4th", "5th", "Bottom"];
+
+/** Readers name their tiers themselves, so the same placement often comes back as many labels.
+ * The bar shows where placements fall; pick a part of it to see the labels readers used there. */
+function CommunityPlacements({ placements }: { placements: WorkDetail["community"] }) {
+  // Temporary: "segments" and "labels" are two layouts side by side for review
+  const [view, setView] = useState<"segments" | "labels">("segments");
+  const [picked, setPicked] = useState<Set<number>>(new Set([0]));
+  // Hovering a label below lights its stripe up; the id is "level:label"
+  const [hoverLabel, setHoverLabel] = useState<string | null>(null);
+  const [stripe, setStripe] = useState<string | null>(null);
+  const perLevel = [0, 1, 2, 3, 4, 5].map((l) => placements.filter((c) => levelOf(c) === l).length);
+
+  const levels = [0, 1, 2, 3, 4, 5]
+    .map((l) => {
+      const labels = new Map<string, { label: string; count: number }>();
+      for (const c of placements) {
+        if (levelOf(c) !== l) continue;
+        const label = c.label.trim().replace(/\s+/g, " ") || `#${c.rank + 1}`;
+        const key = label.toLowerCase();
+        const g = labels.get(key) ?? { label, count: 0 };
+        g.count++;
+        labels.set(key, g);
+      }
+      const sorted = [...labels.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+      return { level: l, total: perLevel[l], labels: sorted };
+    })
+    .filter((l) => l.total > 0);
+
+  // A plain click shows one level; Shift or Ctrl adds or removes levels to compare them
+  const pickLevel = (e: MouseEvent, l: number) => {
+    if (!(e.shiftKey || e.ctrlKey || e.metaKey)) {
+      setPicked(new Set([l]));
+      return;
+    }
+    e.preventDefault(); // keeps a Shift-click from selecting text
+    setPicked((p) => {
+      const next = new Set(p);
+      if (next.has(l)) next.delete(l);
+      else next.add(l);
+      return next;
+    });
+  };
+  const shown = levels.filter((l) => picked.has(l.level));
+  const stripes = levels.flatMap((l) => l.labels.map((r) => ({ ...r, level: l.level, id: `${l.level}:${r.label}` })));
+  const chosen = stripes.find((s) => s.id === stripe);
+
+  return (
+    <>
+      <div className="community-head">
+        <h3>In Reddit tier lists ({placements.length})</h3>
+        <div className="view-switch" role="group" aria-label="Layout">
+          {(["segments", "labels"] as const).map((v) => (
+            <button key={v} type="button" className={view === v ? "on" : ""} onClick={() => setView(v)}>
+              {v === "segments" ? "Segments" : "Labels"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {view === "segments" && (
+        <>
+          <div className="seg-bar">
+            {levels.map((l) => (
+              <button
+                key={l.level}
+                type="button"
+                className={`rank-${l.level} ${picked.has(l.level) ? "on" : ""}`}
+                style={{ flexGrow: l.total }}
+                aria-pressed={picked.has(l.level)}
+                title={`${LEVEL_NAMES[l.level]}: ${l.total} placed. Shift- or Ctrl-click to compare`}
+                onClick={(e) => pickLevel(e, l.level)}
+              >
+                {/* Each label is a stripe, as in the Labels view, so the segment shows what readers used */}
+                <span className="seg-stripes">
+                  {l.labels.map((r) => (
+                    <span
+                      key={r.label}
+                      style={{ flexGrow: r.count }}
+                      className={hoverLabel === `${l.level}:${r.label}` ? "hot" : ""}
+                    />
+                  ))}
+                </span>
+                <span className="seg-count">{l.total}</span>
+              </button>
+            ))}
+          </div>
+          <div className="level-legend muted small">
+            <span>Top of their list</span>
+            <span>Bottom</span>
+          </div>
+          <div className="level-panel">
+            {shown.length === 0 && <div className="muted small">Pick a segment to see its labels.</div>}
+            {shown.map((l) => (
+              <div key={l.level} className="level-group">
+                <div className="muted small">
+                  {LEVEL_NAMES[l.level]} · {l.total} placed
+                </div>
+                <div className="community-chips">
+                  {l.labels.map((r) => (
+                    <span
+                      key={r.label}
+                      className={`chip rank-${l.level}`}
+                      onMouseEnter={() => setHoverLabel(`${l.level}:${r.label}`)}
+                      onMouseLeave={() => setHoverLabel(null)}
+                    >
+                      {r.label} <span className="chip-count">×{r.count}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {view === "labels" && (
+        <>
+          <div className="label-bar">
+            {stripes.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className={`rank-${s.level} ${s.id === stripe ? "on" : ""}`}
+                style={{ flexGrow: s.count }}
+                aria-label={`${s.label}, ${s.count} readers`}
+                aria-pressed={s.id === stripe}
+                onClick={() => setStripe(s.id === stripe ? null : s.id)}
+              />
+            ))}
+          </div>
+          <div className="level-legend muted small">
+            <span>Top of their list</span>
+            <span>Bottom</span>
+          </div>
+          <div className="level-panel muted small">
+            {chosen ? (
+              <>
+                <span className="level-panel-label">{chosen.label}</span> · ×{chosen.count} · {LEVEL_NAMES[chosen.level]}
+              </>
+            ) : (
+              "Each stripe is one label, sized by how many readers used it. Pick one to see its name."
+            )}
+          </div>
+        </>
+      )}
+    </>
+  );
+}
 
 export default function WorkDrawer({ workKey, onClose }: { workKey: string | null; onClose: () => void }) {
   const [work, setWork] = useState<WorkDetail | null>(null);
@@ -64,23 +216,7 @@ export default function WorkDrawer({ workKey, onClose }: { workKey: string | nul
                 </li>
               ))}
             </ol>
-            {work.community.length > 0 && (
-              <>
-                <h3>In Reddit tier lists ({work.community.length})</h3>
-                <p className="muted small">Where readers placed it, best first. Colour = how high in their own list.</p>
-                <div className="community-chips">
-                  {work.community.map((c, i) => {
-                    // 0 = their top tier .. 5 = their bottom tier, whatever their tiers are called
-                    const level = c.tiers > 1 ? Math.round((c.rank / (c.tiers - 1)) * 5) : 0;
-                    return (
-                      <span key={i} className={`chip rank-${level}`} title={`Tier ${c.rank + 1} of ${c.tiers}`}>
-                        {c.label || `#${c.rank + 1}`}
-                      </span>
-                    );
-                  })}
-                </div>
-              </>
-            )}
+            {work.community.length > 0 && <CommunityPlacements placements={work.community} />}
           </>
         )}
       </aside>
