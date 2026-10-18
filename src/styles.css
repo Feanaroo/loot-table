@@ -1383,7 +1383,62 @@ button.link {
   margin: 2px 0 4px;
   font-size: 12px;
 }
-
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.section-head h3 {
+  margin: 12px 0 6px;
+  font-size: 14px;
+}
+.list-status {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+.list-status.ranked {
+  color: var(--tier-D);
+}
+.list-status:hover,
+.list-status:focus-visible {
+  border-color: var(--muted);
+  color: var(--text);
+}
+/* Says what the symbol means: on hover, or after a tap (the open state) */
+.tier-info {
+  position: relative;
+  display: inline-flex;
+}
+.tier-pop {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 5;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-2);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  color: var(--text);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.tier-info:hover .tier-pop,
+.tier-pop.open {
+  display: block;
+}
 /* Matches the "Show all" pill, sitting under the list */
 .books-less {
   display: block;

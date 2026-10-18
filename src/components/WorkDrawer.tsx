@@ -1,6 +1,7 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { api, hours, type WorkDetail } from "../api";
 import { Cover, StatusLine, Stars, Tags, TierButtons, type TagFilter } from "./common";
+import { useBoard } from "../board";
 import { flipFilterTag, readFilter, TAG_EVENT, writeFilter } from "../foryouFilter";
 
 /** 0 = their top tier .. 5 = their bottom tier, whatever their tiers are called */
@@ -177,6 +178,43 @@ const narrators = (work: WorkDetail) => work.narrators.slice(0, 3).join(", ") ||
 const ratings = (work: WorkDetail) => (work.ratingCount ? `${work.ratingCount.toLocaleString()} ratings` : "no ratings yet");
 const bookCount = (work: WorkDetail) => `${work.bookCount} book${work.bookCount !== 1 ? "s" : ""}`;
 
+/** Heading for your list, with a symbol saying whether the book is on it. Hover shows what the
+ * symbol means; tapping it shows the words under the heading, for touch screens. */
+function YourList({ work }: { work: WorkDetail }) {
+  const { bucketOf } = useBoard();
+  const [open, setOpen] = useState(false);
+  const bucket = bucketOf(work.key);
+  const kind = !bucket ? "none" : bucket === "unplaced" ? "unplaced" : "ranked";
+  const symbol = { none: "○", unplaced: "🎧", ranked: "✓" }[kind];
+  const text = {
+    none: "Not on your list yet",
+    unplaced: "Listened to, not ranked yet",
+    ranked: `On your tier list: ${bucket}`,
+  }[kind];
+  return (
+    <div className="your-list">
+      <div className="section-head">
+        <h3>Your tier</h3>
+        <span className="tier-info">
+          <button
+            type="button"
+            className={`list-status ${kind}`}
+            aria-label={text}
+            aria-expanded={open}
+            onClick={() => setOpen(!open)}
+            onBlur={() => setOpen(false)}
+          >
+            {symbol}
+          </button>
+          <span role="tooltip" className={`tier-pop ${open ? "open" : ""}`}>
+            {text}
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 /** Big header: the cover over a blurred copy of itself, the numbers in a row */
 function HeroHeader({ work }: { work: WorkDetail }) {
   return (
@@ -209,6 +247,7 @@ function HeroHeader({ work }: { work: WorkDetail }) {
           </div>
         </div>
         <div className="muted small">Narrated by {narrators(work)}</div>
+        <YourList work={work} />
         <TierButtons work={work} />
       </div>
     </div>
