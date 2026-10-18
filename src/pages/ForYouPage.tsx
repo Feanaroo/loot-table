@@ -1,19 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, hours, TIERS, type Recommendations } from "../api";
+import { api, hours, TIERS, type Recommendations, type Work } from "../api";
 import { useBoard, useOpenWork } from "../board";
 import { Cover, StatusLine, Stars, Tags, TierButtons, type TagFilter } from "../components/common";
+import LikeBookSearch from "../components/LikeBookSearch";
 import PopularitySlider from "../components/PopularitySlider";
 import TagFilterBar from "../components/TagFilterBar";
 import { ANY_POPULARITY, isActive, type PopFilter } from "../popularity";
 
 const FILTER_KEY = "foryou.tagFilter";
 const POPULARITY_KEY = "foryou.popularity";
+const SOFT_KEY = "foryou.soft";
 
 function loadPopularity(): PopFilter {
   try {
     return { ...ANY_POPULARITY, ...JSON.parse(localStorage.getItem(POPULARITY_KEY) ?? "{}") };
   } catch {
     return ANY_POPULARITY;
+  }
+}
+
+function loadSoft(): boolean {
+  try {
+    return localStorage.getItem(SOFT_KEY) === "1";
+  } catch {
+    return false;
   }
 }
 
@@ -39,6 +49,12 @@ export default function ForYouPage() {
       current = false;
     };
   }, [popularity]);
+  const [soft, setSoft] = useState(loadSoft);
+  const [why, setWhy] = useState<string[]>([]);
+  const [filledEmpty, setFilledEmpty] = useState(false);
+  const [picks, setPicks] = useState<{ key: string; title: string; tags: string[] }[]>([]);
+  // What the filters were before "Fill from my books", so that fill can be taken back
+  const [undo, setUndo] = useState<{ filter: TagFilter; popularity: PopFilter; soft: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { board, bucketOf } = useBoard();
@@ -50,11 +66,11 @@ export default function ForYouPage() {
     api.tags().then(setVocab, () => setVocab({}));
   }, []);
 
-  const load = useCallback((f: TagFilter, p: PopFilter) => {
+  const load = useCallback((f: TagFilter, p: PopFilter, soft: boolean) => {
     const id = ++request.current;
     setLoading(true);
     const pick = (state: "in" | "out") => Object.keys(f).filter((k) => f[k] === state);
-    api.recommendations(pick("in"), pick("out"), p).then(
+    api.recommendations(pick("in"), pick("out"), p, 60, soft).then(
       (d) => {
         // A slow answer to an older filter mustn't replace a newer one
         if (id !== request.current) return;
@@ -72,9 +88,11 @@ export default function ForYouPage() {
   filterRef.current = filter;
   const popularityRef = useRef(popularity);
   popularityRef.current = popularity;
+  const softRef = useRef(soft);
+  softRef.current = soft;
   const first = useRef(true);
   useEffect(() => {
-    const t = window.setTimeout(() => load(filterRef.current, popularityRef.current), first.current ? 0 : 700);
+    const t = window.setTimeout(() => load(filterRef.current, popularityRef.current, softRef.current), first.current ? 0 : 700);
     first.current = false;
     return () => window.clearTimeout(t);
   }, [signature, load]);
@@ -86,10 +104,19 @@ export default function ForYouPage() {
       // private window: the filter just isn't remembered
     }
   };
-  const changeFilter = (next: TagFilter, p: PopFilter = popularity) => {
+  const changeFilter = (next: TagFilter, p: PopFilter = popularity, s: boolean = soft) => {
     setFilter(next);
     remember(FILTER_KEY, next);
-    load(next, p);
+    load(next, p, s);
+  };
+  const changeSoft = (s: boolean) => {
+    setSoft(s);
+    try {
+      localStorage.setItem(SOFT_KEY, s ? "1" : "0");
+    } catch {
+      // private window: the choice just isn't remembered
+    }
+    load(filter, popularity, s);
   };
   // Dragging fires many changes: score once the handle rests
   const slide = useRef<number>();
@@ -97,13 +124,80 @@ export default function ForYouPage() {
     setPopularity(p);
     remember(POPULARITY_KEY, p);
     window.clearTimeout(slide.current);
-    slide.current = window.setTimeout(() => load(filterRef.current, p), 200);
+    slide.current = window.setTimeout(() => load(filterRef.current, p, softRef.current), 200);
   };
   const clearAll = () => {
     const p = { ...popularity, min: 0, max: 100 };
     setPopularity(p);
     remember(POPULARITY_KEY, p);
+    setWhy([]);
     changeFilter({}, p);
+  };
+  const fillFromBooks = async () => {
+    const s = await api.suggest();
+    const empty = Object.keys(s.filter).length === 0 && !s.popularity;
+    setFilledEmpty(empty);
+    setWhy(empty ? [] : s.reasons);
+    if (empty) return;
+    setUndo({ filter, popularity, soft });
+    const p = s.popularity ?? popularity;
+    setPopularity(p);
+    remember(POPULARITY_KEY, p);
+    // What the books suggest are leanings, not rules: they shouldn't be able to empty the picks
+    setSoft(true);
+    try {
+      localStorage.setItem(SOFT_KEY, "1");
+    } catch {
+      // private window
+    }
+    changeFilter(s.filter, p, true);
+  };
+  const undoFill = () => {
+    if (!undo) return;
+    setPopularity(undo.popularity);
+    remember(POPULARITY_KEY, undo.popularity);
+    setSoft(undo.soft);
+    try {
+      localStorage.setItem(SOFT_KEY, undo.soft ? "1" : "0");
+    } catch {
+      // private window
+    }
+    setWhy([]);
+    setUndo(null);
+    changeFilter(undo.filter, undo.popularity, undo.soft);
+  };
+  // A book you haven't ranked: its tags become preferences, like the books you ranked do
+  const likeBook = async (w: Work) => {
+    const d = await api.work(w.key);
+    const tags = Object.entries(d.tags ?? {}).flatMap(([g, ts]) => ts.map((t) => `${g}:${t}`));
+    // The book you picked is one you already know: it's kept out of the picks
+    setPicks((p) => (p.some((x) => x.key === w.key) ? p : [...p, { key: w.key, title: w.title, tags }]));
+    if (tags.length === 0) {
+      setWhy([`${w.title} has no tags yet, so there's nothing to filter by.`]);
+      return;
+    }
+    const next = { ...filter };
+    for (const t of tags) if (!next[t]) next[t] = "in";
+    setWhy([`Likes ${w.title}: ${tags.map((t) => t.split(":").slice(1).join(":")).join(", ")}.`]);
+    setSoft(true);
+    try {
+      localStorage.setItem(SOFT_KEY, "1");
+    } catch {
+      // private window
+    }
+    changeFilter(next, popularity, true);
+  };
+  // Removes the book and the tags only it added; tags another pick also has stay
+  const unlikeBook = (key: string) => {
+    const gone = picks.find((p) => p.key === key);
+    const rest = picks.filter((p) => p.key !== key);
+    setPicks(rest);
+    if (!gone) return;
+    const kept = new Set(rest.flatMap((p) => p.tags));
+    const next = { ...filter };
+    for (const t of gone.tags) if (next[t] === "in" && !kept.has(t)) delete next[t];
+    setWhy([]);
+    changeFilter(next);
   };
   // off -> must have -> must not have -> off
   const toggle = (tag: string) => {
@@ -111,6 +205,7 @@ export default function ForYouPage() {
     if (!next[tag]) next[tag] = "in";
     else if (next[tag] === "in") next[tag] = "out";
     else delete next[tag];
+    setWhy([]);
     changeFilter(next);
   };
 
@@ -118,8 +213,9 @@ export default function ForYouPage() {
   if (!data) return <div className="muted">Scoring…</div>;
 
   // Ranked from this page: hide until the next refresh rather than jumping the grid
-  const items = data.items.filter((r) => !bucketOf(r.key));
-  const filtered = Object.keys(filter).length > 0 || isActive(popularity);
+  const picked = new Set(picks.map((p) => p.key));
+  const items = data.items.filter((r) => !bucketOf(r.key) && !picked.has(r.key));
+  const filtered = (!soft && Object.keys(filter).length > 0) || isActive(popularity);
 
   return (
     <div>
@@ -141,10 +237,63 @@ export default function ForYouPage() {
           vocab={vocab}
           counts={data.tagCounts}
           filter={filter}
+          soft={soft}
           onToggle={toggle}
           onClear={clearAll}
           extraActive={Number(isActive(popularity))}
         >
+          {ranked >= 1 && (
+            <div className="tag-filter-row suggest-row">
+              <span className="tag-filter-label">from you</span>
+              <button className="tag-suggest" onClick={fillFromBooks}>
+                Fill from my books
+              </button>
+              <span className="muted small">
+                {filledEmpty
+                  ? "No clear pattern yet: rank a few more series in your top and bottom tiers."
+                  : "Sets the filters from what your S and A tiers have in common, and what your D and F tiers do."}
+              </span>
+              {undo && (
+                <button className="tag-suggest" onClick={undoFill}>
+                  Undo fill
+                </button>
+              )}
+            </div>
+          )}
+          <LikeBookSearch onPick={likeBook} />
+          {picks.length > 0 && (
+            <div className="tag-filter-row suggest-row">
+              <span className="tag-filter-label">picked</span>
+              <div className="tags">
+                {picks.map((p) => (
+                  <button key={p.key} className="tag tag-in" title="Remove this book and the tags only it added" onClick={() => unlikeBook(p.key)}>
+                    {p.title} ×
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {Object.keys(filter).length > 0 && (
+            <div className="tag-filter-row suggest-row">
+              <span className="tag-filter-label">tags</span>
+              <label className="small">
+                <input type="checkbox" checked={soft} onChange={(e) => changeSoft(e.target.checked)} /> Show all, matches
+                first
+              </label>
+              <span className="muted small">
+                {soft
+                  ? "Picks with your tags rank higher, picks with the ones you avoid rank lower; nothing is hidden."
+                  : "Only picks that pass every tag are shown."}
+              </span>
+            </div>
+          )}
+          {why.length > 0 && (
+            <ul className="suggest-why muted small">
+              {why.map((x) => (
+                <li key={x}>{x}</li>
+              ))}
+            </ul>
+          )}
           <PopularitySlider value={popularity} summary={popularityText || data.popularity} onChange={changePopularity} />
         </TagFilterBar>
       )}

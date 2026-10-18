@@ -2,7 +2,8 @@
  * tier list lives in this browser / app's local storage. */
 
 import { byQuality, loadIndex, type DataWork, type Index } from "./engine/data";
-import { neighbourWeights, recommend, TIERS as ENGINE_TIERS } from "./engine/recommend";
+import { applyPreferences, neighbourWeights, recommend, TIERS as ENGINE_TIERS } from "./engine/recommend";
+import { suggest } from "./engine/suggest";
 import { norm, similarity } from "./engine/text";
 import { ANY_POPULARITY, describe, within, type PopFilter } from "./popularity";
 import { decode, encode } from "./share";
@@ -261,6 +262,8 @@ export const api = {
     exclude: string[] = [],
     popularity: PopFilter = ANY_POPULARITY,
     limit = 60,
+    /** Tags move picks up and down instead of filtering them out */
+    soft = false,
   ): Promise<Recommendations> => {
     const index = await load();
     const { ranks, listened } = myRanks();
@@ -268,7 +271,9 @@ export const api = {
     // Popularity first, so the tag counts are of what the slider keeps
     const popular = within(index, popularity);
     recs = recs.filter((r) => popular(index.works.get(r.key)!));
-    if (include.length || exclude.length) {
+    if (soft) {
+      recs = applyPreferences(recs, (r) => filterTags(index, r.key), include, exclude);
+    } else if (include.length || exclude.length) {
       recs = recs.filter((r) => {
         const tags = filterTags(index, r.key);
         return include.every((t) => tags.has(t)) && !exclude.some((t) => tags.has(t));
@@ -311,6 +316,9 @@ export const api = {
 
   /** What a popularity slider setting keeps, in words */
   describePopularity: async (p: PopFilter) => describe(await load(), p),
+
+  /** Filter settings read off my tier list: tags, finished or not, popularity, and why */
+  suggest: async () => suggest(await load(), myRanks().ranks),
 
   /** The filter's groups: whether the series is finished, then the story tags */
   tags: async () => ({ status: STATUS_STATES, ...(await load()).data.vocab }),

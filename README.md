@@ -10,7 +10,7 @@ r/ProgressionFantasy, matched to what's on Audible UK.
 - **For you**: picks for *your* taste, each with the reasons behind it ("same kind of story as
   Mother of Learning: time loop, academy", "28 readers with taste like yours ranked it, 11 in
   their top tier"). Filter by what kind of story you're in the mood for: cultivation, dungeon
-  core, no harem, female lead… or only series that are finished. A popularity slider keeps the
+  core, no harem, female lead… or only series that are finished. **Fill from my books** sets those filters for you, from what your S/A tiers have in common and what your D/F tiers do. A popularity slider keeps the
   big names out (or only them), measured by Reddit tier lists, Audible ratings, or both.
 - **Community**: the genre's top 100 by how readers rank them.
 - **Share** your tier list as a link (the list is in the link itself, about 2 characters a series),
