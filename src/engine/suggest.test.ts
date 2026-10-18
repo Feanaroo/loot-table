@@ -32,8 +32,8 @@ describe("suggestFilter", () => {
     });
   });
 
-  it("suggests nothing until there are two series to read a pattern from", () => {
-    expect(suggestFilter(index, new Map([["a", 0], ["c", 5]]))).toEqual({});
+  it("reads a pattern from a single series", () => {
+    expect(suggestFilter(index, new Map([["a", 0]]))).toEqual({ "story:time loop": "in", "story:school": "in" });
   });
 
   it("doesn't exclude a tag the top tiers also have", () => {

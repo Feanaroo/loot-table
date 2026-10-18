@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, hours, TIERS, type Recommendations } from "../api";
+import { api, hours, TIERS, type Recommendations, type Work } from "../api";
 import { useBoard, useOpenWork } from "../board";
 import { Cover, StatusLine, Stars, Tags, TierButtons, type TagFilter } from "../components/common";
+import LikeBookSearch from "../components/LikeBookSearch";
 import PopularitySlider from "../components/PopularitySlider";
 import TagFilterBar from "../components/TagFilterBar";
 import { ANY_POPULARITY, isActive, type PopFilter } from "../popularity";
@@ -51,6 +52,9 @@ export default function ForYouPage() {
   const [soft, setSoft] = useState(loadSoft);
   const [why, setWhy] = useState<string[]>([]);
   const [filledEmpty, setFilledEmpty] = useState(false);
+  const [picks, setPicks] = useState<{ key: string; title: string; tags: string[] }[]>([]);
+  // What the filters were before "Fill from my books", so that fill can be taken back
+  const [undo, setUndo] = useState<{ filter: TagFilter; popularity: PopFilter; soft: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { board, bucketOf } = useBoard();
@@ -135,6 +139,7 @@ export default function ForYouPage() {
     setFilledEmpty(empty);
     setWhy(empty ? [] : s.reasons);
     if (empty) return;
+    setUndo({ filter, popularity, soft });
     const p = s.popularity ?? popularity;
     setPopularity(p);
     remember(POPULARITY_KEY, p);
@@ -146,6 +151,53 @@ export default function ForYouPage() {
       // private window
     }
     changeFilter(s.filter, p, true);
+  };
+  const undoFill = () => {
+    if (!undo) return;
+    setPopularity(undo.popularity);
+    remember(POPULARITY_KEY, undo.popularity);
+    setSoft(undo.soft);
+    try {
+      localStorage.setItem(SOFT_KEY, undo.soft ? "1" : "0");
+    } catch {
+      // private window
+    }
+    setWhy([]);
+    setUndo(null);
+    changeFilter(undo.filter, undo.popularity, undo.soft);
+  };
+  // A book you haven't ranked: its tags become preferences, like the books you ranked do
+  const likeBook = async (w: Work) => {
+    const d = await api.work(w.key);
+    const tags = Object.entries(d.tags ?? {}).flatMap(([g, ts]) => ts.map((t) => `${g}:${t}`));
+    // The book you picked is one you already know: it's kept out of the picks
+    setPicks((p) => (p.some((x) => x.key === w.key) ? p : [...p, { key: w.key, title: w.title, tags }]));
+    if (tags.length === 0) {
+      setWhy([`${w.title} has no tags yet, so there's nothing to filter by.`]);
+      return;
+    }
+    const next = { ...filter };
+    for (const t of tags) if (!next[t]) next[t] = "in";
+    setWhy([`Likes ${w.title}: ${tags.map((t) => t.split(":").slice(1).join(":")).join(", ")}.`]);
+    setSoft(true);
+    try {
+      localStorage.setItem(SOFT_KEY, "1");
+    } catch {
+      // private window
+    }
+    changeFilter(next, popularity, true);
+  };
+  // Removes the book and the tags only it added; tags another pick also has stay
+  const unlikeBook = (key: string) => {
+    const gone = picks.find((p) => p.key === key);
+    const rest = picks.filter((p) => p.key !== key);
+    setPicks(rest);
+    if (!gone) return;
+    const kept = new Set(rest.flatMap((p) => p.tags));
+    const next = { ...filter };
+    for (const t of gone.tags) if (next[t] === "in" && !kept.has(t)) delete next[t];
+    setWhy([]);
+    changeFilter(next);
   };
   // off -> must have -> must not have -> off
   const toggle = (tag: string) => {
@@ -161,7 +213,8 @@ export default function ForYouPage() {
   if (!data) return <div className="muted">Scoring…</div>;
 
   // Ranked from this page: hide until the next refresh rather than jumping the grid
-  const items = data.items.filter((r) => !bucketOf(r.key));
+  const picked = new Set(picks.map((p) => p.key));
+  const items = data.items.filter((r) => !bucketOf(r.key) && !picked.has(r.key));
   const filtered = (!soft && Object.keys(filter).length > 0) || isActive(popularity);
 
   return (
@@ -189,7 +242,7 @@ export default function ForYouPage() {
           onClear={clearAll}
           extraActive={Number(isActive(popularity))}
         >
-          {ranked >= 5 && (
+          {ranked >= 1 && (
             <div className="tag-filter-row suggest-row">
               <span className="tag-filter-label">from you</span>
               <button className="tag-suggest" onClick={fillFromBooks}>
@@ -200,14 +253,32 @@ export default function ForYouPage() {
                   ? "No clear pattern yet: rank a few more series in your top and bottom tiers."
                   : "Sets the filters from what your S and A tiers have in common, and what your D and F tiers do."}
               </span>
+              {undo && (
+                <button className="tag-suggest" onClick={undoFill}>
+                  Undo fill
+                </button>
+              )}
+            </div>
+          )}
+          <LikeBookSearch onPick={likeBook} />
+          {picks.length > 0 && (
+            <div className="tag-filter-row suggest-row">
+              <span className="tag-filter-label">picked</span>
+              <div className="tags">
+                {picks.map((p) => (
+                  <button key={p.key} className="tag tag-in" title="Remove this book and the tags only it added" onClick={() => unlikeBook(p.key)}>
+                    {p.title} ×
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           {Object.keys(filter).length > 0 && (
             <div className="tag-filter-row suggest-row">
               <span className="tag-filter-label">tags</span>
               <label className="small">
-                <input type="checkbox" checked={soft} onChange={(e) => changeSoft(e.target.checked)} /> Prefer, don't
-                require
+                <input type="checkbox" checked={soft} onChange={(e) => changeSoft(e.target.checked)} /> Show all, matches
+                first
               </label>
               <span className="muted small">
                 {soft

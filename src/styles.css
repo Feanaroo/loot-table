@@ -651,6 +651,35 @@ button.tag:hover {
 .tag-suggest:hover {
   border-color: var(--muted);
 }
+.like-search {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+.like-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+}
+.like-item {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.like-item:hover {
+  background: var(--line);
+}
 /* Popularity: mode, then a two-handle slider (two range inputs on one track) */
 .popularity-row {
   align-items: center;

@@ -12,7 +12,7 @@ export type SuggestedFilter = Record<string, "in" | "out">;
 
 const LIKED_TIERS = new Set([0, 1]); // S, A
 const DISLIKED_TIERS = new Set([4, 5]); // D, F
-const MIN_SERIES = 2; // ranked high (or low) before there's a pattern to read
+const MIN_SERIES = 1; // ranked high (or low): one is enough, its tags still have to beat the genre (MIN_LIFT)
 const MIN_SHARE = 0.6; // of those series have the tag
 const MIN_LIFT = 1.3; // times as common as across the genre
 const MAX_LIKED_SHARE_FOR_OUT = 0.1;
