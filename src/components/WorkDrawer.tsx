@@ -171,9 +171,95 @@ function BookGroup({ books }: { books: Book[] }) {
   );
 }
 
+const HEADER_KEY = "drawer.header";
+
+const narrators = (work: WorkDetail) => work.narrators.slice(0, 3).join(", ") || "?";
+const ratings = (work: WorkDetail) => (work.ratingCount ? `${work.ratingCount.toLocaleString()} ratings` : "no ratings yet");
+const bookCount = (work: WorkDetail) => `${work.bookCount} book${work.bookCount !== 1 ? "s" : ""}`;
+
+/** Big header: the cover over a blurred copy of itself, the numbers in a row */
+function HeroHeader({ work }: { work: WorkDetail }) {
+  return (
+    <div className="hero">
+      <div className="hero-backdrop" style={work.image ? { backgroundImage: `url(${work.image})` } : undefined} />
+      <div className="hero-body">
+        <div className="hero-top">
+          <Cover work={work} size={96} />
+          <div>
+            <h2>{work.title}</h2>
+            <a className="audible-link hero-audible" href={work.audibleUrl} target="_blank" rel="noreferrer">
+              Open book 1 on Audible ↗
+            </a>
+            <div>{work.authors.join(", ")}</div>
+            <StatusLine status={work.status} />
+          </div>
+        </div>
+        <div className="hero-stats">
+          <div>
+            <b className="stars-num">{work.rating ? work.rating.toFixed(1) : "–"}</b>
+            <span>{ratings(work)}</span>
+          </div>
+          <div>
+            <b>{work.bookCount}</b>
+            <span>{work.bookCount !== 1 ? "books" : "book"}</span>
+          </div>
+          <div>
+            <b>{hours(work.runtimeMin)}</b>
+            <span>listening</span>
+          </div>
+        </div>
+        <div className="muted small">Narrated by {narrators(work)}</div>
+        <TierButtons work={work} />
+      </div>
+    </div>
+  );
+}
+
+/** Small header: the facts on one line, the tiers under */
+function CompactHeader({ work }: { work: WorkDetail }) {
+  return (
+    <div className="compact-header">
+      <Cover work={work} size={64} />
+      <div>
+        <h2>{work.title}</h2>
+        <div className="muted small">
+          {work.authors.join(", ")} · {narrators(work)}
+        </div>
+      </div>
+      <div className="small meta compact-facts">
+        <Stars rating={work.rating} count={work.ratingCount} />
+        <span className="muted">
+          {bookCount(work)} · {hours(work.runtimeMin)}
+        </span>
+      </div>
+      <div className="compact-wide">
+        <TierButtons work={work} />
+        <a className="audible-link" href={work.audibleUrl} target="_blank" rel="noreferrer">
+          Open book 1 on Audible ↗
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export default function WorkDrawer({ workKey, onClose }: { workKey: string | null; onClose: () => void }) {
   const [work, setWork] = useState<WorkDetail | null>(null);
   const [allBooks, setAllBooks] = useState(false);
+  const [compact, setCompact] = useState(() => {
+    try {
+      return localStorage.getItem(HEADER_KEY) === "compact";
+    } catch {
+      return false;
+    }
+  });
+  const chooseHeader = (c: boolean) => {
+    setCompact(c);
+    try {
+      localStorage.setItem(HEADER_KEY, c ? "compact" : "hero");
+    } catch {
+      // private window: the choice just isn't remembered
+    }
+  };
   // The For you filter, shown on the tags so they read as on or off
   const [forYou, setForYou] = useState<TagFilter>(readFilter);
   // On For you already: change its filter in place. Elsewhere: set the filter, then go there
@@ -213,25 +299,14 @@ export default function WorkDrawer({ workKey, onClose }: { workKey: string | nul
           <div className="muted">Loading…</div>
         ) : (
           <>
-            <div className="drawer-head">
-              <Cover work={work} size={140} />
-              <div>
-                <h2>{work.title}</h2>
-                <div>{work.authors.join(", ")}</div>
-                <div className="muted small">Narrated by {work.narrators.slice(0, 3).join(", ") || "?"}</div>
-                <div className="small meta">
-                  <Stars rating={work.rating} count={work.ratingCount} />
-                  <span>
-                    {work.bookCount} book{work.bookCount !== 1 ? "s" : ""} · {hours(work.runtimeMin)}
-                  </span>
-                </div>
-                <StatusLine status={work.status} />
-                <TierButtons work={work} />
-                <a className="audible-link" href={work.audibleUrl} target="_blank" rel="noreferrer">
-                  Open book 1 on Audible ↗
-                </a>
-              </div>
+            <div className="header-switch" role="group" aria-label="Header layout">
+              {[false, true].map((c) => (
+                <button key={String(c)} type="button" className={compact === c ? "on" : ""} onClick={() => chooseHeader(c)}>
+                  {c ? "Compact" : "Hero"}
+                </button>
+              ))}
             </div>
+            {compact ? <CompactHeader work={work} /> : <HeroHeader work={work} />}
             {Object.values(work.tags ?? {}).some((t) => t.length > 0) && <h3>Tags</h3>}
             <Tags tags={work.tags} filter={forYou} onToggle={onTag} />
             <h3>Books</h3>
@@ -258,7 +333,7 @@ export default function WorkDrawer({ workKey, onClose }: { workKey: string | nul
             )}
             </div>
             {allBooks && rows.length > BOOKS_SHOWN && (
-              <button type="button" className="tag-suggest" onClick={() => setAllBooks(false)}>
+              <button type="button" className="books-less" onClick={() => setAllBooks(false)}>
                 Show fewer
               </button>
             )}

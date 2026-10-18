@@ -503,6 +503,7 @@ main {
 }
 .close {
   position: absolute;
+  z-index: 4;
   top: 12px;
   right: 12px;
   font-size: 22px;
@@ -1266,5 +1267,137 @@ button.link {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 .books-more:hover {
+  border-color: var(--muted);
+}
+
+/* Drawer header: the hero or the compact layout, switched above it */
+/* Floats over the top-left of the header, so the hero can start at the drawer edge */
+.header-switch {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+  display: flex;
+  gap: 2px;
+  width: fit-content;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+}
+.header-switch button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.header-switch button.on {
+  background: var(--panel-2);
+  color: var(--text);
+}
+/* Bleeds to the drawer's top and side edges (its padding is 24px) */
+.hero {
+  position: relative;
+  overflow: hidden;
+  margin: -24px -24px 0;
+  background: var(--panel-2);
+}
+.hero-backdrop {
+  height: 120px;
+  background: var(--panel-2) center / cover no-repeat;
+  filter: blur(14px) brightness(0.5);
+  transform: scale(1.15);
+}
+.hero-body {
+  position: relative;
+  padding: 0 14px 14px;
+  margin-top: -64px;
+}
+.hero-top {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+.hero-top .cover {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+  border: 3px solid var(--panel-2);
+  border-radius: 6px;
+}
+.hero-top h2 {
+  margin: 0 0 2px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+.hero-stats {
+  display: flex;
+  gap: 18px;
+  margin: 14px 0 10px;
+}
+.hero-stats b {
+  display: block;
+  font-size: 17px;
+}
+.hero-stats span {
+  color: var(--muted);
+  font-size: 11px;
+}
+.hero-body .tiers,
+.hero-body .tier-buttons {
+  margin: 10px 0 0;
+}
+.compact-header {
+  margin-top: 44px;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+.compact-header .cover {
+  width: 64px;
+  height: 64px;
+  border-radius: 4px;
+}
+.compact-header h2 {
+  margin: 0 0 2px;
+  font-size: 17px;
+  line-height: 1.2;
+}
+.compact-facts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  white-space: nowrap;
+}
+.compact-wide {
+  grid-column: 1 / -1;
+}
+.hero-audible {
+  display: inline-block;
+  margin: 2px 0 4px;
+  font-size: 12px;
+}
+
+/* Matches the "Show all" pill, sitting under the list */
+.books-less {
+  display: block;
+  margin: 12px auto 0;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+.books-less:hover {
   border-color: var(--muted);
 }
